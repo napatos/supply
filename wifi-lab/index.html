@@ -4,110 +4,150 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07101d">
-  <title>Wi-Fi Reality Lab</title>
+  <title>Device Reality Lab</title>
   <style>
-    :root{font-family:Inter,system-ui,"Segoe UI",sans-serif;color:#eef6ff;background:#07101d;--panel:#0f1a2b;--card:#142238;--line:#2a3d57;--muted:#9fb0c6;--accent:#38bdf8;--ok:#34d399;--bad:#fb7185}
-    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 75% 0,#133157,#07101d 45%)}
-    header{padding:17px 20px;background:rgba(12,24,41,.94);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:3}
-    h1{margin:0;font-size:22px}.sub{margin-top:5px;color:var(--muted);font-size:12px}.badge{padding:7px 10px;border-radius:999px;background:#372d0e;color:#fde68a;border:1px solid #6b5719;font-size:11px;font-weight:800}
-    main{max-width:1450px;margin:auto;padding:14px;display:grid;grid-template-columns:380px minmax(0,1fr);gap:14px}.panel{background:rgba(15,26,43,.96);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.24)}
-    .title{padding:13px 15px;border-bottom:1px solid var(--line);font-weight:800}.controls{padding:12px;display:grid;gap:11px}.group{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px}
-    .metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}.metric{background:#0b1525;border:1px solid #2c405c;border-radius:10px;padding:10px}.metric small{display:block;color:#91a5bd;font-size:9px;text-transform:uppercase;letter-spacing:.08em}.metric strong{font-size:17px}
-    label{display:block;font-size:11px;color:var(--muted);margin:8px 0 5px}textarea,input,button{font:inherit}textarea,input{width:100%;border:1px solid #354965;background:#0b1525;color:#fff;border-radius:9px;padding:9px}textarea{min-height:190px;resize:vertical;line-height:1.4}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
-    button{border:0;border-radius:9px;padding:9px 11px;background:#2563eb;color:#fff;font-weight:750;cursor:pointer}button.secondary{background:#334155}button.red{background:#9f1239}button:disabled{opacity:.45;cursor:not-allowed}
-    .status{padding:10px 11px;border-radius:9px;background:#0a2437;color:#bae6fd;font-size:12px;line-height:1.45}.status.bad{background:#351320;color:#fecdd3}.status.ok{background:#083a32;color:#a7f3d0}
-    .canvas-wrap{padding:12px}.shell{position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#050b13}canvas{display:block;width:100%;height:auto;aspect-ratio:16/10}.overlay{position:absolute;left:10px;top:10px;background:rgba(4,12,23,.82);border:1px solid #35516f;border-radius:10px;padding:8px 10px}.overlay small{display:block;color:#9fb0c6;font-size:9px}.overlay strong{font-size:13px}
-    .details{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.detail{background:#101d30;border:1px solid var(--line);border-radius:10px;padding:9px}.detail small{display:block;color:var(--muted);font-size:9px;text-transform:uppercase}.detail strong{display:block;margin-top:3px;font-size:12px;overflow-wrap:anywhere}.note{font-size:11px;color:var(--muted);line-height:1.5}.legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:11px;margin-top:10px}.sw{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px}.history{margin-top:10px;max-height:180px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#08111f;padding:8px;font:11px ui-monospace,monospace;white-space:pre-wrap}
-    @media(max-width:960px){main{grid-template-columns:1fr}}@media(max-width:520px){main{padding:8px}.details,.metrics,.row{grid-template-columns:1fr}}
+    :root{font-family:Inter,system-ui,"Segoe UI",sans-serif;color:#eef6ff;background:#07101d;--panel:#0f1a2b;--card:#142238;--line:#2a3d57;--muted:#9fb0c6;--accent:#38bdf8;--ok:#34d399;--warn:#fbbf24;--bad:#fb7185}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 75% 0,#15345c,#07101d 48%)}
+    header{padding:16px 20px;background:rgba(12,24,41,.96);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+    h1,h2,h3,p{margin-top:0}h1{margin-bottom:4px;font-size:22px}h2{font-size:17px;margin-bottom:10px}h3{font-size:14px;margin-bottom:8px}.sub,.note{color:var(--muted);font-size:12px;line-height:1.5}.badge{padding:7px 10px;border-radius:999px;background:#372d0e;color:#fde68a;border:1px solid #6b5719;font-size:11px;font-weight:800}
+    main{max-width:1500px;margin:auto;padding:14px;display:grid;gap:14px}.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}.span-4{grid-column:span 4}.span-6{grid-column:span 6}.span-8{grid-column:span 8}.span-12{grid-column:span 12}
+    .panel{background:rgba(15,26,43,.97);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.2)}.panel-head{padding:13px 15px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:center}.panel-body{padding:13px}.card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px}.stack{display:grid;gap:10px}.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.metric{background:#0b1525;border:1px solid #2c405c;border-radius:10px;padding:10px}.metric small,.detail small{display:block;color:#91a5bd;font-size:9px;text-transform:uppercase;letter-spacing:.08em}.metric strong{font-size:17px}.details{display:grid;grid-template-columns:1fr 1fr;gap:8px}.detail{background:#101d30;border:1px solid var(--line);border-radius:10px;padding:9px}.detail strong{display:block;margin-top:3px;font-size:12px;overflow-wrap:anywhere}
+    label{display:block;font-size:11px;color:var(--muted);margin:7px 0 5px}textarea,input,button,select{font:inherit}textarea,input,select{width:100%;border:1px solid #354965;background:#0b1525;color:#fff;border-radius:9px;padding:9px}textarea{min-height:170px;resize:vertical;line-height:1.4}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+    button{border:0;border-radius:9px;padding:9px 11px;background:#2563eb;color:#fff;font-weight:750;cursor:pointer}button.secondary{background:#334155}button.green{background:#047857}button.red{background:#9f1239}button:disabled{opacity:.45;cursor:not-allowed}.link-btn{display:none;text-decoration:none;border-radius:9px;padding:9px 11px;background:#047857;color:#fff;font-weight:750}
+    .status{padding:10px 11px;border-radius:9px;background:#0a2437;color:#bae6fd;font-size:12px;line-height:1.45}.status.bad{background:#351320;color:#fecdd3}.status.ok{background:#083a32;color:#a7f3d0}.status.warn{background:#3b2b08;color:#fde68a}
+    .cap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.cap{background:#0b1525;border:1px solid var(--line);border-radius:10px;padding:9px}.cap b{display:block;font-size:12px}.cap span{display:block;color:var(--muted);font-size:10px;margin-top:3px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#64748b;margin-right:5px}.dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}.dot.warn{background:var(--warn)}
+    .media-shell{position:relative;background:#040a12;border:1px solid var(--line);border-radius:12px;overflow:hidden;min-height:220px;display:grid;place-items:center}.media-shell video,.media-shell canvas,.media-shell img{display:block;width:100%;height:auto;max-height:430px;object-fit:contain;background:#020617}.empty{color:var(--muted);font-size:12px;padding:24px;text-align:center}.media-label{position:absolute;left:9px;top:9px;background:rgba(2,6,23,.82);border:1px solid #334155;border-radius:999px;padding:5px 8px;font-size:10px}
+    .meter{height:14px;border-radius:999px;background:#09111f;border:1px solid var(--line);overflow:hidden}.meter>div{height:100%;width:0;background:linear-gradient(90deg,#34d399,#fbbf24,#fb7185);transition:width .08s linear}.log{max-height:190px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#08111f;padding:8px;font:11px ui-monospace,monospace;white-space:pre-wrap}
+    .canvas-wrap{position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#050b13}#map{display:block;width:100%;height:auto;aspect-ratio:16/10}.overlay{position:absolute;left:10px;top:10px;background:rgba(4,12,23,.82);border:1px solid #35516f;border-radius:10px;padding:8px 10px}.overlay small{display:block;color:#9fb0c6;font-size:9px}.overlay strong{font-size:13px}.legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:11px;margin-top:10px}.sw{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px}.privacy{border-left:3px solid var(--accent);padding-left:10px}
+    @media(max-width:1050px){.span-4,.span-6,.span-8{grid-column:span 12}}@media(max-width:640px){main{padding:8px}.metrics,.details,.row,.cap-grid{grid-template-columns:1fr}.panel-body{padding:10px}}
   </style>
 </head>
 <body>
 <header>
-  <div><h1>Wi-Fi Reality Lab</h1><div class="sub">Paste verified Windows adapter output, then capture real room positions.</div></div>
-  <div id="truthBadge" class="badge">WAITING FOR VERIFIED DATA</div>
+  <div><h1>Device Reality Lab</h1><div class="sub">Local camera, microphone, screen share, device diagnostics and verified Windows Wi-Fi mapping.</div></div>
+  <div id="truthBadge" class="badge">LOCAL-ONLY · NOTHING AUTO-UPLOADED</div>
 </header>
 <main>
-  <section class="panel">
-    <div class="title">Windows Wi-Fi reading</div>
-    <div class="controls">
-      <div id="status" class="status">Run <b>netsh wlan show interfaces</b> in Command Prompt and paste the complete result below.</div>
-      <div class="group">
-        <label for="netshOutput">Command output</label>
-        <textarea id="netshOutput" placeholder="Paste the complete netsh wlan show interfaces output here..."></textarea>
-        <div class="actions">
-          <button id="parseBtn" type="button">Parse real data</button>
-          <button id="fillCurrentBtn" type="button" class="secondary">Use last parsed reading</button>
-          <button id="resetInputBtn" type="button" class="secondary">Clear text</button>
-        </div>
-      </div>
-      <div class="group">
-        <div class="metrics">
-          <div class="metric"><small>Signal</small><strong id="signal">—</strong></div>
-          <div class="metric"><small>Approx. dBm</small><strong id="dbm">—</strong></div>
-          <div class="metric"><small>Channel</small><strong id="channel">—</strong></div>
-          <div class="metric"><small>Link rate</small><strong id="rate">—</strong></div>
-        </div>
-        <div class="details">
-          <div class="detail"><small>SSID</small><strong id="ssid">—</strong></div>
-          <div class="detail"><small>Band</small><strong id="band">—</strong></div>
-          <div class="detail"><small>Radio type</small><strong id="radio">—</strong></div>
-          <div class="detail"><small>Adapter</small><strong id="adapter">—</strong></div>
-        </div>
-      </div>
-      <div class="group">
-        <label>Selected room position</label>
-        <div class="row">
-          <input id="pointX" type="number" min="0" max="100" step="0.1" value="50" aria-label="X position">
-          <input id="pointY" type="number" min="0" max="100" step="0.1" value="50" aria-label="Y position">
-        </div>
-        <div class="actions">
-          <button id="captureBtn" type="button" disabled>Capture point</button>
-          <button id="undoBtn" type="button" class="secondary">Undo</button>
-          <button id="clearMapBtn" type="button" class="secondary">Clear map</button>
-          <button id="exportBtn" type="button" class="secondary">Export CSV</button>
-        </div>
-        <p id="captureStatus" class="note">Parse a verified reading first. Move the laptop, rerun the command, parse again, then capture the new position.</p>
-      </div>
-      <div class="group">
-        <div class="note"><b>Truth mode:</b> captured dots are real Windows signal-quality readings. The dBm value and shaded area between dots are estimates. Do not publish MAC addresses or BSSIDs.</div>
-        <div id="history" class="history">No points captured.</div>
-      </div>
-    </div>
-  </section>
+  <div class="status warn privacy"><b>Privacy boundary:</b> this static page can preview devices only after you grant permission. It does not send camera, microphone, screen, location or Wi-Fi data to ChatGPT or any server. I still cannot see you through this page.</div>
 
   <section class="panel">
-    <div class="title">Measured room heatmap · <span id="pointCount">0 points</span></div>
-    <div class="canvas-wrap">
-      <div class="shell">
-        <canvas id="map" width="960" height="600" aria-label="Measured Wi-Fi room heatmap"></canvas>
-        <div class="overlay"><small>Selected position</small><strong id="selected">50.0, 50.0</strong></div>
-      </div>
-      <div class="legend">
-        <span><i class="sw" style="background:#2dd4bf"></i>Strong</span>
-        <span><i class="sw" style="background:#38bdf8"></i>Good</span>
-        <span><i class="sw" style="background:#fde047"></i>Moderate</span>
-        <span><i class="sw" style="background:#fb7185"></i>Weak</span>
-      </div>
-      <p class="note">One point confirms one location only. Use at least 8–15 physical positions for a useful map.</p>
-    </div>
+    <div class="panel-head"><h2>Browser capability check</h2><button id="refreshCaps" type="button" class="secondary">Refresh</button></div>
+    <div class="panel-body"><div id="capGrid" class="cap-grid"></div></div>
   </section>
+
+  <div class="grid">
+    <section class="panel span-6">
+      <div class="panel-head"><h2>Camera</h2><span id="cameraState" class="badge">OFF</span></div>
+      <div class="panel-body stack">
+        <div class="media-shell"><video id="cameraVideo" playsinline autoplay muted></video><div id="cameraEmpty" class="empty">Camera preview is off.</div><span class="media-label">Local preview</span></div>
+        <div class="actions"><button id="startCamera">Start camera</button><button id="switchCamera" class="secondary" disabled>Switch camera</button><button id="takePhoto" class="green" disabled>Take photo</button><button id="stopCamera" class="red" disabled>Stop</button></div>
+        <div id="cameraStatus" class="status">Press Start camera and approve the browser prompt.</div>
+      </div>
+    </section>
+
+    <section class="panel span-6">
+      <div class="panel-head"><h2>Captured photo</h2><a id="photoDownload" class="link-btn" download="camera-photo.png">Download photo</a></div>
+      <div class="panel-body"><div class="media-shell"><canvas id="photoCanvas" width="1280" height="720"></canvas><div id="photoEmpty" class="empty">No photo captured.</div></div></div>
+    </section>
+
+    <section class="panel span-6">
+      <div class="panel-head"><h2>Microphone level</h2><span id="micState" class="badge">OFF</span></div>
+      <div class="panel-body stack">
+        <div class="meter" aria-label="Microphone level"><div id="micBar"></div></div>
+        <div class="metrics"><div class="metric"><small>Level</small><strong id="micLevel">0%</strong></div><div class="metric"><small>Audio tracks</small><strong id="micTracks">0</strong></div></div>
+        <div class="actions"><button id="startMic">Start microphone</button><button id="stopMic" class="red" disabled>Stop</button></div>
+        <div id="micStatus" class="status">The meter runs locally. Audio is not recorded or uploaded.</div>
+      </div>
+    </section>
+
+    <section class="panel span-6">
+      <div class="panel-head"><h2>Screen share and recording</h2><span id="screenState" class="badge">OFF</span></div>
+      <div class="panel-body stack">
+        <div class="media-shell"><video id="screenVideo" playsinline autoplay muted></video><div id="screenEmpty" class="empty">Screen preview is off.</div><span class="media-label">Local screen preview</span></div>
+        <div class="actions"><button id="startScreen">Share screen</button><button id="startRecording" class="green" disabled>Start recording</button><button id="stopRecording" class="secondary" disabled>Stop recording</button><button id="stopScreen" class="red" disabled>Stop share</button><a id="recordingDownload" class="link-btn" download="screen-recording.webm">Download recording</a></div>
+        <div id="screenStatus" class="status">Desktop browsers may allow screen sharing. Some mobile browsers do not expose this API.</div>
+      </div>
+    </section>
+
+    <section class="panel span-4">
+      <div class="panel-head"><h2>Device and browser</h2></div>
+      <div class="panel-body stack"><div class="details"><div class="detail"><small>Platform</small><strong id="platform">—</strong></div><div class="detail"><small>CPU threads</small><strong id="cpu">—</strong></div><div class="detail"><small>Memory hint</small><strong id="memory">—</strong></div><div class="detail"><small>Screen</small><strong id="screenSize">—</strong></div><div class="detail"><small>Secure context</small><strong id="secureContext">—</strong></div><div class="detail"><small>Online</small><strong id="onlineState">—</strong></div></div></div>
+    </section>
+
+    <section class="panel span-4">
+      <div class="panel-head"><h2>Browser network estimate</h2></div>
+      <div class="panel-body stack"><div class="details"><div class="detail"><small>Effective type</small><strong id="effectiveType">—</strong></div><div class="detail"><small>Downlink estimate</small><strong id="downlink">—</strong></div><div class="detail"><small>RTT estimate</small><strong id="rtt">—</strong></div><div class="detail"><small>Data saver</small><strong id="saveData">—</strong></div></div><p class="note">These values are coarse browser estimates, not real Wi-Fi RSSI or a speed test.</p></div>
+    </section>
+
+    <section class="panel span-4">
+      <div class="panel-head"><h2>Battery and location</h2></div>
+      <div class="panel-body stack"><div class="details"><div class="detail"><small>Battery</small><strong id="batteryLevel">—</strong></div><div class="detail"><small>Charging</small><strong id="charging">—</strong></div><div class="detail"><small>Latitude</small><strong id="latitude">Not requested</strong></div><div class="detail"><small>Longitude</small><strong id="longitude">Not requested</strong></div></div><div class="actions"><button id="getLocation">Request location</button><button id="clearLocation" class="secondary">Clear</button></div><div id="locationStatus" class="status">Location is requested only after you press the button.</div></div>
+    </section>
+
+    <section class="panel span-4">
+      <div class="panel-head"><h2>Windows Wi-Fi input</h2></div>
+      <div class="panel-body stack">
+        <div id="wifiStatus" class="status">Run <b>netsh wlan show interfaces</b>, then paste the complete result.</div>
+        <textarea id="netshOutput" placeholder="Paste Windows netsh output here..."></textarea>
+        <div class="actions"><button id="parseWifi">Parse real data</button><button id="clearWifiText" class="secondary">Clear text</button></div>
+        <div class="metrics"><div class="metric"><small>Signal</small><strong id="signal">—</strong></div><div class="metric"><small>Approx. dBm</small><strong id="dbm">—</strong></div><div class="metric"><small>Channel</small><strong id="channel">—</strong></div><div class="metric"><small>Link rate</small><strong id="rate">—</strong></div></div>
+        <div class="details"><div class="detail"><small>SSID</small><strong id="ssid">—</strong></div><div class="detail"><small>Band</small><strong id="band">—</strong></div><div class="detail"><small>Radio</small><strong id="radio">—</strong></div><div class="detail"><small>Adapter</small><strong id="adapter">—</strong></div></div>
+      </div>
+    </section>
+
+    <section class="panel span-8">
+      <div class="panel-head"><h2>Measured Wi-Fi room map · <span id="pointCount">0 points</span></h2><button id="exportWifi" class="secondary">Export CSV</button></div>
+      <div class="panel-body stack">
+        <div class="row"><div><label for="pointX">X position</label><input id="pointX" type="number" min="0" max="100" step="0.1" value="50"></div><div><label for="pointY">Y position</label><input id="pointY" type="number" min="0" max="100" step="0.1" value="50"></div></div>
+        <div class="actions"><button id="capturePoint" disabled>Capture point</button><button id="undoPoint" class="secondary">Undo</button><button id="clearMap" class="secondary">Clear map</button></div>
+        <div id="captureStatus" class="status">Parse a verified Windows reading first.</div>
+        <div class="canvas-wrap"><canvas id="map" width="960" height="600"></canvas><div class="overlay"><small>Selected position</small><strong id="selected">50.0, 50.0</strong></div></div>
+        <div class="legend"><span><i class="sw" style="background:#2dd4bf"></i>Strong</span><span><i class="sw" style="background:#38bdf8"></i>Good</span><span><i class="sw" style="background:#fde047"></i>Moderate</span><span><i class="sw" style="background:#fb7185"></i>Weak</span></div>
+        <p class="note">Captured dots are real Windows signal-quality values. Approximate dBm and the colored surface between points are calculated.</p>
+        <div id="wifiHistory" class="log">No points captured.</div>
+      </div>
+    </section>
+
+    <section class="panel span-12">
+      <div class="panel-head"><h2>Event log</h2><button id="clearLog" class="secondary">Clear log</button></div>
+      <div class="panel-body"><div id="eventLog" class="log">Ready.</div></div>
+    </section>
+  </div>
 </main>
 <script>
-const $=id=>document.getElementById(id);const canvas=$('map'),ctx=canvas.getContext('2d');
-const state={reading:null,points:[],selected:{x:50,y:50}};
+const $=id=>document.getElementById(id);
+const app={camera:null,mic:null,screen:null,audioContext:null,micFrame:null,recorder:null,chunks:[],facing:'user',wifi:null,points:[],selected:{x:50,y:50}};
+function log(message){const t=new Date().toLocaleTimeString();$('eventLog').textContent=`[${t}] ${message}\n`+$('eventLog').textContent}
+function status(id,text,type=''){const el=$(id);el.className='status'+(type?' '+type:'');el.textContent=text}
+function setBadge(id,text,type=''){const el=$(id);el.textContent=text;el.style.background=type==='ok'?'#083a32':type==='bad'?'#431724':'#372d0e';el.style.color=type==='ok'?'#a7f3d0':type==='bad'?'#fecdd3':'#fde68a'}
+function stopStream(stream){if(stream)stream.getTracks().forEach(t=>t.stop())}
+function capability(name,available,note){return `<div class="cap"><b><i class="dot ${available?'ok':'bad'}"></i>${name}</b><span>${note}</span></div>`}
+function renderCaps(){const md=navigator.mediaDevices||{};const c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;$('capGrid').innerHTML=[capability('Camera / microphone',!!md.getUserMedia,md.getUserMedia?'Available':'Missing'),capability('Screen capture',!!md.getDisplayMedia,md.getDisplayMedia?'Available':'Missing'),capability('MediaRecorder',!!window.MediaRecorder,window.MediaRecorder?'Available':'Missing'),capability('Network Information',!!c,c?'Available':'Missing'),capability('Battery API',!!navigator.getBattery,navigator.getBattery?'Available':'Missing'),capability('Geolocation',!!navigator.geolocation,navigator.geolocation?'Available':'Missing'),capability('Secure context',window.isSecureContext,window.isSecureContext?'Yes':'No'),capability('Canvas',!!document.createElement('canvas').getContext,'Available')].join('')}
+async function startCamera(){try{stopStream(app.camera);app.camera=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:app.facing},width:{ideal:1280},height:{ideal:720}},audio:false});$('cameraVideo').srcObject=app.camera;$('cameraEmpty').style.display='none';$('startCamera').disabled=true;$('switchCamera').disabled=false;$('takePhoto').disabled=false;$('stopCamera').disabled=false;setBadge('cameraState','ON','ok');status('cameraStatus','Local camera preview active. Nothing is uploaded.','ok');log('Camera started')}catch(e){status('cameraStatus',`Camera failed: ${e.message}`,'bad');log(`Camera error: ${e.name}`)}}
+function stopCamera(){stopStream(app.camera);app.camera=null;$('cameraVideo').srcObject=null;$('cameraEmpty').style.display='block';$('startCamera').disabled=false;$('switchCamera').disabled=true;$('takePhoto').disabled=true;$('stopCamera').disabled=true;setBadge('cameraState','OFF');status('cameraStatus','Camera stopped.');log('Camera stopped')}
+async function switchCamera(){app.facing=app.facing==='user'?'environment':'user';await startCamera()}
+function takePhoto(){const v=$('cameraVideo'),c=$('photoCanvas'),x=c.getContext('2d');if(!v.videoWidth)return;c.width=v.videoWidth;c.height=v.videoHeight;x.drawImage(v,0,0,c.width,c.height);$('photoEmpty').style.display='none';c.toBlob(blob=>{const a=$('photoDownload');if(a.dataset.url)URL.revokeObjectURL(a.dataset.url);const url=URL.createObjectURL(blob);a.href=url;a.dataset.url=url;a.style.display='inline-block'},'image/png');log('Photo captured locally')}
+async function startMic(){try{stopStream(app.mic);app.mic=await navigator.mediaDevices.getUserMedia({audio:true,video:false});app.audioContext=new (window.AudioContext||window.webkitAudioContext)();const analyser=app.audioContext.createAnalyser();analyser.fftSize=512;app.audioContext.createMediaStreamSource(app.mic).connect(analyser);const data=new Uint8Array(analyser.frequencyBinCount);function tick(){analyser.getByteTimeDomainData(data);let sum=0;for(const v of data){const n=(v-128)/128;sum+=n*n}const rms=Math.sqrt(sum/data.length),pct=Math.min(100,Math.round(rms*300));$('micBar').style.width=pct+'%';$('micLevel').textContent=pct+'%';app.micFrame=requestAnimationFrame(tick)}tick();$('micTracks').textContent=app.mic.getAudioTracks().length;$('startMic').disabled=true;$('stopMic').disabled=false;setBadge('micState','ON','ok');status('micStatus','Live microphone level active. Audio is not recorded or uploaded.','ok');log('Microphone meter started')}catch(e){status('micStatus',`Microphone failed: ${e.message}`,'bad');log(`Microphone error: ${e.name}`)}}
+function stopMic(){if(app.micFrame)cancelAnimationFrame(app.micFrame);stopStream(app.mic);app.mic=null;if(app.audioContext)app.audioContext.close();app.audioContext=null;$('micBar').style.width='0';$('micLevel').textContent='0%';$('micTracks').textContent='0';$('startMic').disabled=false;$('stopMic').disabled=true;setBadge('micState','OFF');status('micStatus','Microphone stopped.');log('Microphone stopped')}
+async function startScreen(){try{app.screen=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});$('screenVideo').srcObject=app.screen;$('screenEmpty').style.display='none';$('startScreen').disabled=true;$('startRecording').disabled=!window.MediaRecorder;$('stopScreen').disabled=false;setBadge('screenState','ON','ok');status('screenStatus','Local screen preview active. It is not transmitted to ChatGPT.','ok');app.screen.getVideoTracks()[0].addEventListener('ended',stopScreen);log('Screen sharing started')}catch(e){status('screenStatus',`Screen sharing failed: ${e.message}`,'bad');log(`Screen error: ${e.name}`)}}
+function stopScreen(){if(app.recorder&&app.recorder.state==='recording')app.recorder.stop();stopStream(app.screen);app.screen=null;$('screenVideo').srcObject=null;$('screenEmpty').style.display='block';$('startScreen').disabled=false;$('startRecording').disabled=true;$('stopRecording').disabled=true;$('stopScreen').disabled=true;setBadge('screenState','OFF');status('screenStatus','Screen sharing stopped.');log('Screen sharing stopped')}
+function startRecording(){if(!app.screen||!window.MediaRecorder)return;app.chunks=[];let type='video/webm';if(MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus'))type='video/webm;codecs=vp9,opus';app.recorder=new MediaRecorder(app.screen,{mimeType:type});app.recorder.ondataavailable=e=>{if(e.data.size)app.chunks.push(e.data)};app.recorder.onstop=()=>{const blob=new Blob(app.chunks,{type});const a=$('recordingDownload');if(a.dataset.url)URL.revokeObjectURL(a.dataset.url);const url=URL.createObjectURL(blob);a.href=url;a.dataset.url=url;a.style.display='inline-block';status('screenStatus','Recording ready for local download.','ok');log('Screen recording created locally')};app.recorder.start(1000);$('startRecording').disabled=true;$('stopRecording').disabled=false;status('screenStatus','Recording locally in this browser.','warn');log('Screen recording started')}
+function stopRecording(){if(app.recorder&&app.recorder.state==='recording')app.recorder.stop();$('startRecording').disabled=!app.screen;$('stopRecording').disabled=true;log('Screen recording stopped')}
+function updateDevice(){const c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;$('platform').textContent=navigator.userAgentData?.platform||navigator.platform||'Unknown';$('cpu').textContent=navigator.hardwareConcurrency||'Unavailable';$('memory').textContent=navigator.deviceMemory?navigator.deviceMemory+' GB estimate':'Unavailable';$('screenSize').textContent=`${screen.width} × ${screen.height}`;$('secureContext').textContent=window.isSecureContext?'Yes':'No';$('onlineState').textContent=navigator.onLine?'Online':'Offline';$('effectiveType').textContent=c?.effectiveType||'Unavailable';$('downlink').textContent=Number.isFinite(c?.downlink)?c.downlink+' Mbps estimate':'Unavailable';$('rtt').textContent=Number.isFinite(c?.rtt)?c.rtt+' ms estimate':'Unavailable';$('saveData').textContent=c?.saveData?'On':'Off / unavailable'}
+async function updateBattery(){if(!navigator.getBattery){$('batteryLevel').textContent='Unavailable';$('charging').textContent='Unavailable';return}try{const b=await navigator.getBattery();const render=()=>{$('batteryLevel').textContent=Math.round(b.level*100)+'%';$('charging').textContent=b.charging?'Yes':'No'};render();b.addEventListener('levelchange',render);b.addEventListener('chargingchange',render)}catch{$('batteryLevel').textContent='Unavailable'}}
+function getLocation(){if(!navigator.geolocation){status('locationStatus','Geolocation API unavailable.','bad');return}status('locationStatus','Waiting for permission and position...','warn');navigator.geolocation.getCurrentPosition(p=>{$('latitude').textContent=p.coords.latitude.toFixed(6);$('longitude').textContent=p.coords.longitude.toFixed(6);status('locationStatus',`Location obtained with approximately ${Math.round(p.coords.accuracy)} m accuracy.`,'ok');log('Location read locally after permission')},e=>{status('locationStatus',`Location failed: ${e.message}`,'bad');log(`Location error: ${e.code}`)},{enableHighAccuracy:true,timeout:15000,maximumAge:0})}
+function clearLocation(){$('latitude').textContent='Cleared';$('longitude').textContent='Cleared';status('locationStatus','Displayed location cleared.');log('Displayed location cleared')}
 function field(text,label){const esc=label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');const m=text.match(new RegExp('^\\s*'+esc+'\\s*:\\s*(.+?)\\s*$','im'));return m?m[1].trim():''}
-function num(v){const m=String(v).match(/-?\d+(?:\.\d+)?/);return m?Number(m[0]):null}function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
-function setStatus(text,type=''){const el=$('status');el.className='status'+(type?' '+type:'');el.textContent=text}
-function showReading(){const r=state.reading;$('signal').textContent=r?r.signal+'%':'—';$('dbm').textContent=r?((r.signal/2)-100).toFixed(1)+' dBm est.':'—';$('channel').textContent=r?r.channel||'—':'—';$('rate').textContent=r?`${r.receive??'—'} / ${r.transmit??'—'} Mbps`:'—';$('ssid').textContent=r?r.ssid||'—':'—';$('band').textContent=r?r.band||'—':'—';$('radio').textContent=r?r.radio||'—':'—';$('adapter').textContent=r?r.adapter||'—':'—'}
-function parse(){const text=$('netshOutput').value;const connection=field(text,'State').toLowerCase();const signal=num(field(text,'Signal'));if(text.match(/location permission|WlanQueryInterface returns error 5/i)){state.reading=null;showReading();$('captureBtn').disabled=true;$('truthBadge').textContent='WINDOWS PERMISSION BLOCKED';setStatus('Windows blocked WLAN details. Turn on Location services and rerun the command.','bad');return}if(connection!=='connected'||!Number.isFinite(signal)){state.reading=null;showReading();$('captureBtn').disabled=true;$('truthBadge').textContent='NO VERIFIED WI-FI DATA';setStatus('No connected interface with a valid Signal field was found.','bad');return}state.reading={signal,ssid:field(text,'SSID'),band:field(text,'Band'),channel:field(text,'Channel'),radio:field(text,'Radio type'),adapter:field(text,'Description'),receive:num(field(text,'Receive rate (Mbps)')),transmit:num(field(text,'Transmit rate (Mbps)')),capturedAt:new Date().toISOString()};showReading();$('captureBtn').disabled=false;$('truthBadge').textContent='VERIFIED REAL WINDOWS DATA';$('truthBadge').style.background='#083a32';$('truthBadge').style.color='#a7f3d0';setStatus('Verified Windows Wi-Fi data parsed successfully.','ok');$('captureStatus').textContent='Select the matching physical map position and capture this reading.'}
-function colorFor(signal){const stops=[[0,[15,23,42]],[25,[103,59,113]],[45,[251,113,133]],[65,[253,224,71]],[80,[56,189,248]],[100,[45,212,191]]];for(let i=1;i<stops.length;i++)if(signal<=stops[i][0]){const [v1,c1]=stops[i-1],[v2,c2]=stops[i],t=(signal-v1)/(v2-v1),c=c1.map((v,j)=>Math.round(v+(c2[j]-v)*t));return`rgb(${c[0]},${c[1]},${c[2]})`}return'rgb(45,212,191)'}
-function interpolate(x,y){if(!state.points.length)return 0;let n=0,dn=0;for(const p of state.points){const d=Math.max(.5,Math.hypot(x-p.x,y-p.y)),w=1/(d*d);n+=w*p.signal;dn+=w}return n/dn}
-function draw(){const cols=48,cell=canvas.width/cols,rows=Math.ceil(canvas.height/cell);ctx.fillStyle='#07101b';ctx.fillRect(0,0,canvas.width,canvas.height);if(state.points.length){for(let gy=0;gy<rows;gy++)for(let gx=0;gx<cols;gx++){const x=(gx+.5)/cols*100,y=(gy+.5)/rows*100;ctx.fillStyle=colorFor(interpolate(x,y));ctx.fillRect(gx*cell,gy*cell,cell+1,cell+1)}}ctx.strokeStyle='rgba(255,255,255,.13)';ctx.lineWidth=1;for(let i=0;i<=10;i++){const x=i/10*canvas.width,y=i/10*canvas.height;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke()}for(const p of state.points){const x=p.x/100*canvas.width,y=p.y/100*canvas.height;ctx.fillStyle='#020617';ctx.beginPath();ctx.arc(x,y,14,0,Math.PI*2);ctx.fill();ctx.fillStyle=colorFor(p.signal);ctx.beginPath();ctx.arc(x,y,9,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.font='12px system-ui';ctx.fillText(`${p.signal.toFixed(0)}%`,x+16,y+4)}const sx=state.selected.x/100*canvas.width,sy=state.selected.y/100*canvas.height;ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(sx,sy,12,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(sx-18,sy);ctx.lineTo(sx+18,sy);ctx.moveTo(sx,sy-18);ctx.lineTo(sx,sy+18);ctx.stroke();$('pointCount').textContent=state.points.length+' point'+(state.points.length===1?'':'s');$('history').textContent=state.points.length?state.points.map((p,i)=>`${i+1}. (${p.x.toFixed(1)}, ${p.y.toFixed(1)})  ${p.signal}%  ${p.ssid}`).join('\n'):'No points captured.';save()}
-function select(x,y){state.selected={x:clamp(x,0,100),y:clamp(y,0,100)};$('pointX').value=state.selected.x.toFixed(1);$('pointY').value=state.selected.y.toFixed(1);$('selected').textContent=`${state.selected.x.toFixed(1)}, ${state.selected.y.toFixed(1)}`;draw()}
-function capture(){if(!state.reading)return;const x=clamp(Number($('pointX').value),0,100),y=clamp(Number($('pointY').value),0,100);state.points.push({...state.reading,x,y});$('captureStatus').textContent=`Captured ${state.reading.signal}% at (${x.toFixed(1)}, ${y.toFixed(1)}).`;draw()}
-function save(){try{localStorage.setItem('wifiRealityPoints',JSON.stringify(state.points))}catch{}}
-function restore(){try{const p=JSON.parse(localStorage.getItem('wifiRealityPoints')||'[]');if(Array.isArray(p))state.points=p}catch{}draw()}
-canvas.addEventListener('click',e=>{const r=canvas.getBoundingClientRect();select((e.clientX-r.left)/r.width*100,(e.clientY-r.top)/r.height*100)});$('pointX').addEventListener('input',()=>select(Number($('pointX').value),state.selected.y));$('pointY').addEventListener('input',()=>select(state.selected.x,Number($('pointY').value)));$('parseBtn').addEventListener('click',parse);$('fillCurrentBtn').addEventListener('click',()=>{if(state.reading)showReading()});$('resetInputBtn').addEventListener('click',()=>{$('netshOutput').value=''});$('captureBtn').addEventListener('click',capture);$('undoBtn').addEventListener('click',()=>{state.points.pop();draw()});$('clearMapBtn').addEventListener('click',()=>{state.points=[];draw()});$('exportBtn').addEventListener('click',()=>{const rows=['x,y,signal_percent,approx_dbm,ssid,band,channel,radio,receive_mbps,transmit_mbps,captured_at',...state.points.map(p=>[p.x,p.y,p.signal,((p.signal/2)-100).toFixed(1),JSON.stringify(p.ssid),JSON.stringify(p.band),p.channel,JSON.stringify(p.radio),p.receive,p.transmit,p.capturedAt].join(','))];const blob=new Blob([rows.join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='wifi-room-map.csv';a.click();URL.revokeObjectURL(a.href)});restore();
+function numberFrom(v){const m=String(v).match(/-?\d+(?:\.\d+)?/);return m?Number(m[0]):null}
+function showWifi(){const r=app.wifi;$('signal').textContent=r?r.signal+'%':'—';$('dbm').textContent=r?((r.signal/2)-100).toFixed(1)+' est.':'—';$('channel').textContent=r?r.channel||'—':'—';$('rate').textContent=r?`${r.receive??'—'} / ${r.transmit??'—'} Mbps`:'—';$('ssid').textContent=r?r.ssid||'—':'—';$('band').textContent=r?r.band||'—':'—';$('radio').textContent=r?r.radio||'—':'—';$('adapter').textContent=r?r.adapter||'—':'—'}
+function parseWifi(){const text=$('netshOutput').value;if(/location permission|WlanQueryInterface returns error 5/i.test(text)){app.wifi=null;showWifi();$('capturePoint').disabled=true;status('wifiStatus','Windows blocked WLAN information. Turn on Location services and rerun the command.','bad');log('Windows Wi-Fi query blocked by location permission');return}const connected=field(text,'State').toLowerCase()==='connected',signal=numberFrom(field(text,'Signal'));if(!connected||!Number.isFinite(signal)){app.wifi=null;showWifi();$('capturePoint').disabled=true;status('wifiStatus','No connected interface with a valid Signal field was found.','bad');log('Wi-Fi parse failed');return}app.wifi={signal,ssid:field(text,'SSID'),band:field(text,'Band'),channel:field(text,'Channel'),radio:field(text,'Radio type'),adapter:field(text,'Description'),receive:numberFrom(field(text,'Receive rate (Mbps)')),transmit:numberFrom(field(text,'Transmit rate (Mbps)')),capturedAt:new Date().toISOString()};showWifi();$('capturePoint').disabled=false;status('wifiStatus','Verified real Windows Wi-Fi data parsed.','ok');status('captureStatus','Select the matching physical position and capture this reading.','ok');log(`Wi-Fi parsed: ${app.wifi.signal}% · ${app.wifi.ssid}`)}
+const canvas=$('map'),ctx=canvas.getContext('2d');function clamp(v,a,b){return Math.max(a,Math.min(b,v))}function colorFor(signal){const s=[[0,[15,23,42]],[25,[103,59,113]],[45,[251,113,133]],[65,[253,224,71]],[80,[56,189,248]],[100,[45,212,191]]];for(let i=1;i<s.length;i++)if(signal<=s[i][0]){const[v1,c1]=s[i-1],[v2,c2]=s[i],t=(signal-v1)/(v2-v1),c=c1.map((v,j)=>Math.round(v+(c2[j]-v)*t));return`rgb(${c[0]},${c[1]},${c[2]})`}return'rgb(45,212,191)'}function interpolate(x,y){if(!app.points.length)return 0;let n=0,d=0;for(const p of app.points){const dist=Math.max(.5,Math.hypot(x-p.x,y-p.y)),w=1/(dist*dist);n+=w*p.signal;d+=w}return n/d}
+function drawMap(){const cols=48,cell=canvas.width/cols,rows=Math.ceil(canvas.height/cell);ctx.fillStyle='#07101b';ctx.fillRect(0,0,canvas.width,canvas.height);if(app.points.length)for(let gy=0;gy<rows;gy++)for(let gx=0;gx<cols;gx++){const x=(gx+.5)/cols*100,y=(gy+.5)/rows*100;ctx.fillStyle=colorFor(interpolate(x,y));ctx.fillRect(gx*cell,gy*cell,cell+1,cell+1)}ctx.strokeStyle='rgba(255,255,255,.13)';for(let i=0;i<=10;i++){const x=i/10*canvas.width,y=i/10*canvas.height;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke()}for(const p of app.points){const x=p.x/100*canvas.width,y=p.y/100*canvas.height;ctx.fillStyle='#020617';ctx.beginPath();ctx.arc(x,y,14,0,Math.PI*2);ctx.fill();ctx.fillStyle=colorFor(p.signal);ctx.beginPath();ctx.arc(x,y,9,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.font='12px system-ui';ctx.fillText(`${p.signal}%`,x+16,y+4)}const sx=app.selected.x/100*canvas.width,sy=app.selected.y/100*canvas.height;ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(sx,sy,12,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(sx-18,sy);ctx.lineTo(sx+18,sy);ctx.moveTo(sx,sy-18);ctx.lineTo(sx,sy+18);ctx.stroke();$('pointCount').textContent=app.points.length+' point'+(app.points.length===1?'':'s');$('wifiHistory').textContent=app.points.length?app.points.map((p,i)=>`${i+1}. (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) · ${p.signal}% · ${p.ssid}`).join('\n'):'No points captured.';try{localStorage.setItem('deviceRealityWifiPoints',JSON.stringify(app.points))}catch{}}
+function selectPoint(x,y){app.selected={x:clamp(x,0,100),y:clamp(y,0,100)};$('pointX').value=app.selected.x.toFixed(1);$('pointY').value=app.selected.y.toFixed(1);$('selected').textContent=`${app.selected.x.toFixed(1)}, ${app.selected.y.toFixed(1)}`;drawMap()}
+function capturePoint(){if(!app.wifi)return;const x=clamp(Number($('pointX').value),0,100),y=clamp(Number($('pointY').value),0,100);app.points.push({...app.wifi,x,y});status('captureStatus',`Captured ${app.wifi.signal}% at (${x.toFixed(1)}, ${y.toFixed(1)}).`,'ok');log(`Wi-Fi point captured at ${x.toFixed(1)}, ${y.toFixed(1)}`);drawMap()}
+function exportWifi(){const rows=['x,y,signal_percent,approx_dbm,ssid,band,channel,radio,receive_mbps,transmit_mbps,captured_at',...app.points.map(p=>[p.x,p.y,p.signal,((p.signal/2)-100).toFixed(1),JSON.stringify(p.ssid),JSON.stringify(p.band),p.channel,JSON.stringify(p.radio),p.receive,p.transmit,p.capturedAt].join(','))];const blob=new Blob([rows.join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='wifi-room-map.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);log('Wi-Fi CSV exported')}
+$('refreshCaps').addEventListener('click',()=>{renderCaps();updateDevice();log('Capabilities refreshed')});$('startCamera').addEventListener('click',startCamera);$('switchCamera').addEventListener('click',switchCamera);$('takePhoto').addEventListener('click',takePhoto);$('stopCamera').addEventListener('click',stopCamera);$('startMic').addEventListener('click',startMic);$('stopMic').addEventListener('click',stopMic);$('startScreen').addEventListener('click',startScreen);$('stopScreen').addEventListener('click',stopScreen);$('startRecording').addEventListener('click',startRecording);$('stopRecording').addEventListener('click',stopRecording);$('getLocation').addEventListener('click',getLocation);$('clearLocation').addEventListener('click',clearLocation);$('parseWifi').addEventListener('click',parseWifi);$('clearWifiText').addEventListener('click',()=>{$('netshOutput').value=''});$('capturePoint').addEventListener('click',capturePoint);$('undoPoint').addEventListener('click',()=>{app.points.pop();drawMap()});$('clearMap').addEventListener('click',()=>{app.points=[];drawMap();log('Wi-Fi map cleared')});$('exportWifi').addEventListener('click',exportWifi);$('clearLog').addEventListener('click',()=>{$('eventLog').textContent='Log cleared.'});canvas.addEventListener('click',e=>{const r=canvas.getBoundingClientRect();selectPoint((e.clientX-r.left)/r.width*100,(e.clientY-r.top)/r.height*100)});$('pointX').addEventListener('input',()=>selectPoint(Number($('pointX').value),app.selected.y));$('pointY').addEventListener('input',()=>selectPoint(app.selected.x,Number($('pointY').value)));window.addEventListener('online',updateDevice);window.addEventListener('offline',updateDevice);window.addEventListener('beforeunload',()=>{stopStream(app.camera);stopStream(app.mic);stopStream(app.screen)});
+renderCaps();updateDevice();updateBattery();try{const saved=JSON.parse(localStorage.getItem('deviceRealityWifiPoints')||'[]');if(Array.isArray(saved))app.points=saved}catch{}drawMap();log('Device Reality Lab initialized');
 </script>
 </body>
 </html>
