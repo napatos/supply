@@ -8,8 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="bill.css?v=20260718-4">
+  <link rel="stylesheet" href="styles.css?v=20260719-1">
+  <link rel="stylesheet" href="bill.css?v=20260719-1">
+  <link rel="stylesheet" href="mobile.css?v=20260719-1">
 </head>
 <body>
   <div id="toast" class="toast"></div>
@@ -27,16 +28,17 @@
   </section>
 
   <div id="appShell" class="app-shell hidden">
-    <aside class="sidebar">
+    <aside class="sidebar" aria-label="Main navigation">
       <div class="brand"><div class="brand-mark">S</div><div><strong>SupplyFlow</strong><small>Procurement</small></div></div>
       <nav id="nav"></nav>
       <button id="logoutBtn" class="nav-link logout">↪ <span>Logout</span></button>
     </aside>
+    <button id="sidebarBackdrop" class="sidebar-backdrop" aria-label="Close navigation"></button>
     <main class="main">
       <header class="topbar">
-        <button id="menuBtn" class="icon-btn">☰</button>
+        <button id="menuBtn" class="icon-btn" aria-label="Open navigation" aria-expanded="false">☰</button>
         <div><p id="pageEyebrow" class="eyebrow">OVERVIEW</p><h2 id="pageTitle">Dashboard</h2></div>
-        <div class="top-actions"><span id="syncState" class="sync-pill">● Live</span><button id="quickBill" class="btn primary">＋ New Bill</button></div>
+        <div class="top-actions"><span id="syncState" class="sync-pill">● Live</span><button id="quickBill" class="btn primary" type="button">＋ Add Bill</button></div>
       </header>
       <div id="page" class="page"></div>
     </main>
@@ -56,7 +58,7 @@
     </form>
   </dialog>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=20260718-6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8"></script>
+  <script src="app.js?v=20260719-1"></script>
 </body>
 </html>
