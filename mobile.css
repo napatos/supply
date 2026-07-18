@@ -1,0 +1,21 @@
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  border: 0;
+  background: rgba(17, 15, 11, 0.55);
+  cursor: pointer;
+}
+
+@media (max-width: 980px) {
+  .sidebar-backdrop.open {
+    display: block;
+  }
+}
+
+@media (min-width: 981px) {
+  .sidebar-backdrop {
+    display: none !important;
+  }
+}
