@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="bill.css?v=20260719-11">
   <link rel="stylesheet" href="mobile.css?v=20260719-1">
   <link rel="stylesheet" href="session.css?v=20260719-2">
-  <link rel="stylesheet" href="theme.css?v=20260719-1">
+  <link rel="stylesheet" href="theme.css?v=20260719-2">
 </head>
 <body>
   <div id="toast" class="toast"></div>
@@ -48,7 +48,7 @@
 
   <dialog id="vendorDialog">
     <form id="vendorForm" method="dialog" class="dialog-card">
-      <div class="dialog-head"><div><p class="eyebrow">NEW RECORD</p><h3>Create Vendor</h3></div><button type="button" class="icon-btn close-dialog">×</button></div>
+      <div class="dialog-head"><div><p class="eyebrow">SUPPLIER RECORD</p><h3>Add Supplier</h3></div><button type="button" class="icon-btn close-dialog">×</button></div>
       <div class="form-grid two">
         <label>Vendor name<input name="vendor_name" required></label>
         <label>TIN<input name="tin_number"></label>
@@ -56,11 +56,11 @@
         <label>Address<input name="address"></label>
         <label class="span-2">Bank details<input name="bank_details"></label>
       </div>
-      <div class="dialog-actions"><button type="button" class="btn close-dialog">Cancel</button><button class="btn primary" value="save">Save & select</button></div>
+      <div class="dialog-actions"><button type="button" class="btn close-dialog">Cancel</button><button class="btn primary" value="save">Save Supplier</button></div>
     </form>
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8"></script>
-  <script src="app.js?v=20260719-14"></script>
+  <script src="app.js?v=20260719-15"></script>
 </body>
 </html>
