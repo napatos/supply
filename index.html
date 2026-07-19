@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="styles.css?v=20260719-1">
   <link rel="stylesheet" href="bill.css?v=20260719-7">
   <link rel="stylesheet" href="mobile.css?v=20260719-1">
-  <link rel="stylesheet" href="session.css?v=20260719-1">
+  <link rel="stylesheet" href="session.css?v=20260719-2">
 </head>
 <body>
   <div id="toast" class="toast"></div>
@@ -22,7 +22,7 @@
       <h1>SupplyFlow</h1>
       <p class="muted">Bills, rates and inventory in one calm workspace.</p>
       <label>Email<input id="loginEmail" type="email" required autocomplete="email"></label>
-      <label>Password<input id="loginPassword" type="password" required autocomplete="current-password"></label>
+      <label>Password<span class="password-field"><input id="loginPassword" type="password" required autocomplete="current-password"><button id="togglePassword" type="button" aria-label="Show password" aria-pressed="false">Show</button></span></label>
       <button class="btn primary full" type="submit">Sign in</button>
       <p id="loginError" class="form-error"></p>
     </form>
@@ -60,6 +60,6 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8"></script>
-  <script src="app.js?v=20260719-7"></script>
+  <script src="app.js?v=20260719-8"></script>
 </body>
 </html>
