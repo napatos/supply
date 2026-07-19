@@ -1,118 +1,487 @@
-const SUPABASE_URL='https://uipapbtndjctyzvlreoa.supabase.co';
-const SUPABASE_KEY='sb_publishable_Inoee5YHcjCLCamrmE-vfA_LLWPK7CT';
-const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const $=s=>document.querySelector(s), money=n=>`MVR ${Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:3})}`;
-const unitMoney=n=>`MVR ${Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}`;
-const localDate=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Indian/Maldives',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const state={products:[],vendors:[],bills:[],billItems:[],rates:[],inventory:[],purchaseOrders:[],movements:[],settings:[],page:'dashboard',selectedVendor:null,items:[],poItems:[],editingBillId:null,editingVendorId:null,lastSavedId:null};
-const pages=[['new-bill','＋','Bill Entry'],['bill-history','▤','Bills'],['rate-dashboard','↗','Rates'],['products','□','Products'],['vendors','♙','Vendors'],['settings','⚙','Settings']];
-const pageLabels={'item-analysis':'Item Analysis','rate-dashboard':'Rate Dashboard','purchase-orders':'Purchase Orders',inventory:'Inventory',reports:'Reports',analytics:'Analytics',backup:'Data Backup','price-cards':'Price Cards','rate-history':'Rate History'};
-const purchaseUnits=['KG','G','PC','DOZ','PKT','L','ML','M','BOX','PACKAGE','CASE','HALF CASE','CARTON','BAG','BUNDLE','BOTTLE','CAN','JAR','TIN','TUB','ROLL','TUBE'];
-const normalizeUnit=value=>({PIECE:'PC',PCS:'PC',DOZEN:'DOZ',PACK:'PKT',PACKET:'PKT',LITRE:'L',LITER:'L'}[String(value||'').toUpperCase()]||String(value||'PC').toUpperCase());
-const unitOptions=value=>purchaseUnits.map(u=>`<option ${u===normalizeUnit(value)?'selected':''}>${u}</option>`).join('');
-const categoryAliases={beverages:'Beverage',sauces:'Sauce',buiscuit:'Biscuit',dry:'Dry Items','dry items':'Dry Items','food coloring':'Colour',ketchup:'Sauce','soft drinks':'Beverage','energy drinks':'Beverage',takeaway:'Takeaway',suger:'Sugar',syrup:'Syrup',veg:'Vegetables',tuna:'Tuna',tin:'Canned'};
-function canonicalCategory(value){const raw=String(value||'Uncategorised').trim().toLowerCase();return categoryAliases[raw]||raw.replace(/\b\w/g,c=>c.toUpperCase())}
-function inferPack(product){const text=`${product.name||''} ${product.unit||''}`.replace(/,/g,'');const matches=[...text.matchAll(/(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*(kg|g|gm|grams?|ml|l|ltr|litres?|pcs?|pc)\b/gi)];const m=matches.at(-1);if(m){const raw=m[3].toUpperCase(),unit=/^(PC|PCS)$/.test(raw)?'PCS':/^(GM|GRAM|GRAMS)$/.test(raw)?'G':/^(LTR|LITRE|LITRES)$/.test(raw)?'L':raw;return {pack_quantity:Number(m[1]),pack_size:Number(m[2]),pack_size_unit:unit}}return {pack_quantity:product.pack_quantity||1,pack_size:product.pack_size||1,pack_size_unit:product.pack_size_unit||(/KG|GRAM/i.test(product.unit||'')?'KG':/ML|LTR|LITRE/i.test(product.unit||'')?'L':/PC|PCK|PACK|BOX|CTN|CASE/i.test(product.unit||'')?'PCS':'UNIT')}}
-function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
-function nav(){const primary=pages.slice(0,3),manage=pages.slice(3),links=rows=>rows.map(([id,ico,label])=>`<button class="nav-link ${primary.some(x=>x[0]===id)?'primary-nav':''} ${state.page===id?'active':''}" data-page="${id}"><span class="ico">${ico}</span><span>${label}</span></button>`).join('');$('#nav').innerHTML=`<div class="nav-section">Billing</div>${links(primary)}<div class="nav-section">Manage</div>${links(manage)}`;document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>go(b.dataset.page))}
-async function fetchAll(table,order,columnAscending=true){const pageSize=1000,rows=[];for(let from=0;;from+=pageSize){let query=db.from(table).select('*').range(from,from+pageSize-1);if(order)query=query.order(order,{ascending:columnAscending});const {data,error}=await query;if(error)throw error;rows.push(...(data||[]));if(!data||data.length<pageSize)break}return rows}
-async function load(){
-  const {data:member,error:memberError}=await db.from('supply_members').select('role,active').maybeSingle();
-  if(memberError)throw memberError;if(!member?.active)throw new Error('This account is not an active SupplyFlow member.');
-  const [p,v,b,bi,r,i,po,m,s]=await Promise.all([
-    fetchAll('supply_products','name'),fetchAll('supply_vendors','vendor_name'),fetchAll('supply_bills','bill_date',false),fetchAll('supply_bill_items'),fetchAll('supply_rate_history','effective_date',false),fetchAll('supply_inventory'),fetchAll('supply_purchase_orders','order_date',false),fetchAll('supply_inventory_movements','movement_date',false),fetchAll('supply_settings')]);
-  Object.assign(state,{products:p,vendors:v,bills:b,billItems:bi,rates:r,inventory:i,purchaseOrders:po,movements:m,settings:s});
-  if(!state.products.length&&!state.vendors.length)throw new Error('Your account connected, but no products or vendors are visible. Check membership access.');
+const SUPABASE_URL = 'https://uipapbtndjctyzvlreoa.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Inoee5YHcjCLCamrmE-vfA_LLWPK7CT';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = selector => document.querySelector(selector);
+const money = value => `MVR ${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 3 })}`;
+const preciseMoney = value => `MVR ${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`;
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Indian/Maldives', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+
+const navigation = [
+  ['entry', 'New bill'],
+  ['bills', 'Bills'],
+  ['rates', 'Rates'],
+  ['suppliers', 'Suppliers']
+];
+const units = ['PC', 'G', 'KG', 'ML', 'L', 'M', 'DOZ', 'PKT', 'BOX', 'PACKAGE'];
+
+const state = {
+  view: 'entry',
+  products: [], vendors: [], bills: [], billItems: [], rates: [],
+  draftItems: [], editingBillId: null, editingSupplierId: null, lastSaved: null,
+  draft: { vendorId: '', date: today(), invoice: '' }
+};
+
+function toast(message) {
+  const element = $('#toast');
+  element.textContent = message;
+  element.classList.add('show');
+  setTimeout(() => element.classList.remove('show'), 2600);
 }
-function closeMenu(){document.querySelector('.sidebar')?.classList.remove('open');$('#sidebarBackdrop')?.classList.remove('open');$('#menuBtn')?.setAttribute('aria-expanded','false')}
-function startBill(){state.items=[];state.selectedVendor=null;state.editingBillId=null;state.lastSavedId=null;go('new-bill')}
-function go(id){state.page=id;nav();const label=state.editingBillId&&id==='new-bill'?'Modify Bill':pages.find(x=>x[0]===id)?.[2]||pageLabels[id]||id;$('#pageTitle').textContent=label;$('#pageEyebrow').textContent=id==='dashboard'?'OVERVIEW':'SUPPLY MANAGEMENT';$('#quickBill').classList.toggle('hidden',id==='new-bill');render();closeMenu()}
-const kpi=(label,value,hint)=>`<div class="card kpi"><div class="label">${label}</div><div class="value">${value}</div><div class="hint">${hint}</div></div>`;
-function dashboard(){const total=state.bills.reduce((a,b)=>a+Number(b.total_amount),0),gst=state.bills.reduce((a,b)=>a+Number(b.gst_amount),0),month=localDate().slice(0,7),monthly=state.bills.filter(b=>b.bill_date?.startsWith(month)).reduce((a,b)=>a+Number(b.total_amount),0),low=state.inventory.filter(i=>Number(i.quantity)<=Number(i.reorder_level));const vendorSpend={};state.bills.forEach(b=>vendorSpend[b.vendor_name]=(vendorSpend[b.vendor_name]||0)+Number(b.total_amount));const top=Object.entries(vendorSpend).sort((a,b)=>b[1]-a[1]).slice(0,5);return `<div class="grid kpi-grid">${kpi('TOTAL PURCHASES',money(total),`${state.bills.length} bills`)}${kpi('THIS MONTH',money(monthly),'Current month')}${kpi('GST TOTAL',money(gst),'Recorded tax')}${kpi('LOW STOCK',low.length,'At or below reorder level')}</div><div class="grid content-grid"><section class="card"><div class="section-head"><h3>Recent bills</h3><button class="btn" onclick="go('bill-history')">View all</button></div>${billTable(state.bills.slice(0,7))}</section><section class="card"><div class="section-head"><h3>Top vendors</h3><button class="btn" onclick="go('analytics')">Analytics</button></div>${top.length?top.map(([name,value],i)=>`<div class="setting-row"><span>${i+1}. ${esc(name)}</span><strong>${money(value)}</strong></div>`).join(''):'<div class="empty"><strong>No spending yet</strong>Saved bills will appear here.</div>'}</section></div><div class="grid kpi-grid dashboard-secondary">${kpi('PRODUCTS',state.products.length,'Active catalogue')}${kpi('VENDORS',state.vendors.length,'Approved suppliers')}${kpi('PURCHASE ORDERS',state.purchaseOrders.length,'All statuses')}${kpi('RATE CHANGES',state.rates.length,'Historical records')}</div>`}
-function billTable(rows){return rows.length?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>Bill</th><th>Vendor</th><th>Status</th><th>Total</th><th>Actions</th></tr></thead><tbody>${rows.map(b=>`<tr><td>${esc(b.bill_date)}</td><td>${esc(b.bill_number)}</td><td>${esc(b.vendor_name)}</td><td><span class="badge ${b.payment_status==='paid'?'good':'warn'}">${esc(b.payment_status)}</span></td><td class="money">${money(b.total_amount)}</td><td><div class="row-actions"><button class="btn" onclick="showBill(${b.id})">View</button><button class="btn" onclick="editBill(${b.id})">Modify</button><button class="btn danger" onclick="deleteBill(${b.id})">Delete</button></div></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty"><strong>No bills yet</strong>Create your first bill to start tracking spend.</div>`}
-window.showBill=id=>{const b=state.bills.find(x=>x.id===id),items=state.billItems.filter(x=>x.bill_id===id);if(!b)return;$('#pageTitle').textContent=`Bill ${b.bill_number}`;$('#page').innerHTML=`<section class="card bill-detail"><div class="section-head"><div><p class="eyebrow">PURCHASE BILL</p><h3>${esc(b.bill_number)}</h3></div><div><button class="btn" onclick="go('bill-history')">Back</button> <button class="btn primary" onclick="printBill(${b.id})">Print</button></div></div><div class="vendor-summary"><div><small>Vendor</small><strong>${esc(b.vendor_name)}</strong></div><div><small>TIN</small><strong>${esc(b.vendor_tin||'—')}</strong></div><div><small>Mobile</small><strong>${esc(b.vendor_mobile||'—')}</strong></div><div><small>Date</small><strong>${esc(b.bill_date)}</strong></div></div><div class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Quantity</th><th>Unit</th><th>Packing</th><th>Rate</th><th>Total</th></tr></thead><tbody>${items.map(i=>`<tr><td>${esc(i.product_name)}</td><td>${esc(i.category||'—')}</td><td>${i.quantity}</td><td>${esc(i.purchase_unit||i.unit)}</td><td>${i.pack_quantity} × ${i.pack_size} ${esc(i.pack_size_unit)}</td><td>${money(i.rate)}</td><td>${money(i.line_total)}</td></tr>`).join('')}</tbody></table></div><div class="bill-summary detail-summary"><div><span>Subtotal</span><strong>${money(b.subtotal)}</strong></div><div><span>GST ${Number(b.gst_rate)||0}%</span><strong>${money(b.gst_amount)}</strong></div><div class="grand"><span>Grand total</span><strong>${money(b.total_amount)}</strong></div></div><p class="muted">Payment: ${esc(b.payment_status)} · ${esc(b.payment_method)}${b.notes?` · ${esc(b.notes)}`:''}</p></section>`}
-const renderBillDetail=window.showBill;window.showBill=id=>{renderBillDetail(id);const actions=document.querySelector('.bill-detail .section-head>div:last-child');if(actions)actions.insertAdjacentHTML('beforeend',` <button class="btn" onclick="editBill(${id})">Modify</button> <button class="btn danger" onclick="deleteBill(${id})">Delete</button>`)}
-window.editBill=id=>{const b=state.bills.find(x=>x.id===id);if(!b)return toast('Bill not found');state.editingBillId=id;state.items=state.billItems.filter(x=>x.bill_id===id).map(x=>({...x,quantity:Number(x.quantity),rate:Number(x.rate),pack_quantity:Number(x.pack_quantity)||1,pack_size:Number(x.pack_size)||1,price_per_base_unit:Number(x.price_per_base_unit)||0,add_gst:Number(x.gst_amount)>0}));state.selectedVendor=state.vendors.find(v=>String(v.id)===String(b.vendor_id))||null;go('new-bill');const form=$('#billForm');form.elements.bill_number.value=b.bill_number;form.elements.bill_date.value=b.bill_date;form.elements.payment_status.value=b.payment_status;form.elements.payment_method.value=b.payment_method;form.elements.notes.value=b.notes||'';$('#vendorSelect').value=String(b.vendor_id||'');$('#vendorSelect').dispatchEvent(new Event('change'));$('#saveBillBtn').textContent='Save Changes';updateBillSummary();window.scrollTo({top:0,behavior:'smooth'})}
-window.deleteBill=async id=>{const b=state.bills.find(x=>x.id===id);if(!b||!confirm(`Delete bill ${b.bill_number}? This will also reverse its rate and inventory records.`))return;const {error}=await db.rpc('delete_supply_bill',{p_bill_id:id});if(error)return toast(error.message);await load();toast('Bill deleted');go('bill-history')}
-window.printBill=id=>{showBill(id);window.print()}
-function newBill(){const saved=state.lastSavedId?state.bills.find(b=>b.id===state.lastSavedId):null;return `${saved?`<div class="save-success" role="status"><span>✓</span><div><strong>Bill ${esc(saved.bill_number)} saved</strong><small>Ready to enter the next bill.</small></div><button type="button" class="btn" onclick="showBill(${saved.id})">View saved bill</button></div>`:''}<form id="billForm" class="card form-card professional-bill simple-bill" novalidate><div class="simple-section"><h3>Supplier bill</h3><div class="form-grid three"><label>Vendor<select id="vendorSelect"><option value="">Choose existing vendor…</option>${state.vendors.map(v=>`<option value="${v.id}">${esc(v.vendor_name)}</option>`).join('')}<option value="__create">＋ Create vendor</option></select></label><label>Date<input name="bill_date" type="date" value="${localDate()}"></label><label>Invoice number<input name="bill_number" placeholder="Enter invoice number"></label></div><div id="vendorSummary" class="vendor-summary hidden"></div></div><div id="itemEntrySection" class="simple-section hidden"><div class="section-head"><h3>Add items</h3><span class="muted">GST adds 8% when selected</span></div><div class="form-grid four item-fields"></div><div id="packPreview" class="hidden"></div><div class="item-add-row"><button id="addItem" type="button" class="btn primary">＋ Add item</button></div><div id="itemsTable"></div></div><div id="billFinish" class="simple-section bill-finish hidden"><input type="hidden" name="payment_status" value="paid"><input type="hidden" name="payment_method" value="cash"><input type="hidden" name="notes" value=""><p id="billMessage" class="form-error" role="alert"></p><div class="dialog-actions bill-actions"><span></span><button id="saveBillBtn" type="button" class="btn primary">Save Bill</button></div></div></form><section id="savedHistory" class="card saved-bills"><div class="section-head"><div><h3>Recent bills</h3><p class="muted">View or correct a previous bill when needed.</p></div><button type="button" class="btn" onclick="go('bill-history')">View all</button></div>${billTable(state.bills.slice(0,5))}</section>`}
-function productOptions(rows){return rows.filter(p=>p.name?.trim()).map(p=>`<option value="${p.id}">${esc(p.name)} · ${esc(canonicalCategory(p.category))}</option>`).join('')}
-function lineAmounts(x){const gross=x.quantity*x.rate,gst=x.add_gst?gross*.08:0;return {gst,total:gross+gst}}
-function convertedRates(rate,packQty,packSize,unit){const count=Number(packQty)*Number(packSize),u=String(unit||'').toUpperCase(),base=count>0?Number(rate)/count:0,gram=u==='G'?base:u==='KG'?base/1000:null;return {base,gram}}
-function renderItems(){const box=$('#itemsTable');if(!box)return;box.innerHTML=state.items.length?`<div class="table-wrap item-rows"><table><thead><tr><th>Description</th><th>Qty</th><th>Packing</th><th>Unit</th><th>Rate</th><th>Base rate</th><th>1 gram</th><th>GST</th><th>Total</th><th></th></tr></thead><tbody>${state.items.map((x,i)=>{const amount=lineAmounts(x),c=convertedRates(x.rate,x.pack_quantity,x.pack_size,x.pack_size_unit);return `<tr><td><strong>${esc(x.product_name)}</strong></td><td>${x.quantity}</td><td>${x.pack_quantity}x${x.pack_size}</td><td>${esc(x.pack_size_unit)}</td><td>${money(x.rate)}</td><td>${unitMoney(c.base)} / ${esc(x.pack_size_unit)}</td><td>${c.gram==null?'—':unitMoney(c.gram)}</td><td>${x.add_gst?'8%':'—'}</td><td class="money">${money(amount.total)}</td><td><button type="button" class="btn danger" aria-label="Remove ${esc(x.product_name)}" onclick="removeItem(${i})">×</button></td></tr>`}).join('')}</tbody></table></div><div class="add-another-row"><span>${state.items.length} item${state.items.length===1?'':'s'} in this bill</span><button type="button" class="btn" onclick="document.querySelector('#productSelect')?.focus()">＋ Add another item</button></div>`:'<div class="empty"><strong>No items yet</strong>Add the first item above.</div>'}
-window.removeItem=i=>{state.items.splice(i,1);renderItems();updateBillSummary();updateBillFlow()};
-function listPage(kind){const isP=kind==='products',rows=isP?state.products.filter(p=>p.name?.trim()):state.vendors;return `<div class="toolbar vendor-toolbar"><div><h3>${isP?'Products':'Suppliers'}</h3><p class="muted">${isP?'Search the purchase catalogue':'Manage supplier contacts and billing details'}</p></div><div class="toolbar-actions"><input id="listSearch" class="search" placeholder="Search ${kind}…">${isP?'':'<button class="btn primary" id="createRecord">＋ Add Supplier</button>'}</div></div><div id="listResults">${dataTable(kind,rows)}</div>`}
-function vendorCards(rows){return rows.length?`<div class="vendor-grid">${rows.map(v=>`<article class="vendor-card"><div class="vendor-card-accent"></div><div class="vendor-card-head"><div class="vendor-avatar">${esc((v.vendor_name||'V').trim().charAt(0).toUpperCase())}</div><div><h3>${esc(v.vendor_name)}</h3><span class="badge good">Supplier</span></div><button class="icon-edit" type="button" onclick="editVendor(${v.id})" aria-label="Edit ${esc(v.vendor_name)}">✎</button></div><div class="vendor-contact"><div><span>☎</span><p><small>Phone</small><strong>${esc(v.contact_number||'Not added')}</strong></p></div><div><span>⌖</span><p><small>Address</small><strong>${esc(v.address||'Not added')}</strong></p></div><div><span>◇</span><p><small>TIN / Tax ID</small><strong>${esc(v.tin_number||'Not added')}</strong></p></div></div><div class="vendor-card-foot"><span>Purchase total</span><strong>${money(v.total_budget)}</strong></div></article>`).join('')}</div>`:`<div class="card empty"><strong>No suppliers found</strong>Add the first supplier to begin.</div>`}
-function dataTable(kind,rows){if(kind==='products')return `<div class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Unit</th><th>Vendor</th><th>Rate</th></tr></thead><tbody>${rows.filter(p=>p.name?.trim()).map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.category||'—')}</td><td>${esc(p.unit||'—')}</td><td>${esc(p.vendor_name||'—')}</td><td class="money">${money(p.rate)}</td></tr>`).join('')}</tbody></table></div>`;return vendorCards(rows)}
-function latestRates(rows){const latest=new Map();rows.forEach(r=>{if(!latest.has(r.product_id))latest.set(r.product_id,r)});return [...latest.values()]}
-function currentPriceRows(){const rows=latestRates(state.rates),seen=new Set(rows.map(r=>r.product_id));state.products.forEach(p=>{if(!seen.has(p.id)&&p.rate!=null)rows.push({product_id:p.id,product_name:p.name,vendor_name:p.vendor_name,unit:p.purchase_unit||p.unit,rate:p.rate,effective_date:'Current rate'})});return rows}
-function rates(cards=false){if(cards){const rows=currentPriceRows();return `<div class="toolbar"><input id="cardSearch" class="search" placeholder="Search product, vendor or unit…"></div><div id="cardResults" class="grid price-cards">${priceCardHtml(rows)}</div>`}return `<div class="toolbar"><input id="rateSearch" class="search" placeholder="Search product, vendor, unit or date…"></div><div id="rateResults">${rateTable(state.rates)}</div>`}
-function rateTable(rows){return rows.length?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>Product</th><th>Vendor</th><th>Unit</th><th>Rate</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.effective_date)}</td><td>${esc(r.product_name)}</td><td>${esc(r.vendor_name||'—')}</td><td>${esc(r.unit||'—')}</td><td class="money">${money(r.rate)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty"><strong>No rate history yet</strong>Rates are saved automatically from bills.</div>'}
-function priceMetrics(r){const product=state.products.find(p=>p.id===r.product_id)||{},item=state.billItems.find(i=>i.bill_id===r.bill_id&&i.product_id===r.product_id),inferred=inferPack(product),packQty=Number(item?.pack_quantity)||Number(product.pack_quantity)||Number(inferred.pack_quantity)||1,packSize=Number(item?.pack_size)||Number(product.pack_size)||Number(inferred.pack_size)||1,total=packQty*packSize,measure=String(item?.pack_size_unit||product.pack_size_unit||inferred.pack_size_unit||product.unit||r.unit||'UNIT').toUpperCase(),rate=Number(r.rate)||0;if(measure==='G')return {pack:`${packQty}x${packSize} G`,primaryLabel:'Price / KG',primary:rate/total*1000,smallLabel:'Price / G',small:rate/total};if(measure==='KG')return {pack:`${packQty}x${packSize} KG`,primaryLabel:'Price / KG',primary:rate/total,smallLabel:'Price / G',small:rate/total/1000};if(measure==='ML')return {pack:`${packQty}x${packSize} ML`,primaryLabel:'Price / L',primary:rate/total*1000,smallLabel:'Price / ML',small:rate/total};if(measure==='L')return {pack:`${packQty}x${packSize} L`,primaryLabel:'Price / L',primary:rate/total,smallLabel:'Price / ML',small:rate/total/1000};return {pack:`${packQty}x${packSize} ${measure}`,primaryLabel:'Price / Unit',primary:rate/total,smallLabel:null,small:null}}
-function priceCardHtml(rows){return rows.length?rows.map(r=>{const m=priceMetrics(r);return `<article class="card price-card"><div class="price-card-head"><h3>${esc(r.product_name)}</h3><span class="badge">${esc(m.pack)}</span></div><div class="rate">${money(r.rate)} <small>pack rate</small></div><div class="unit-rate-grid"><div><small>${m.primaryLabel}</small><strong>${money(m.primary)}</strong></div>${m.smallLabel?`<div class="gram-rate"><small>${m.smallLabel}</small><strong>${unitMoney(m.small)}</strong></div>`:''}</div><p class="muted">${esc(r.vendor_name||'No vendor')} · ${esc(r.effective_date)}</p></article>`}).join(''):'<div class="empty"><strong>No price cards yet</strong>No product rates are available.</div>'}
-function itemAnalysis(){const map=new Map();state.billItems.forEach(i=>{const x=map.get(i.product_id)||{name:i.product_name,unit:i.purchase_unit||i.unit,quantity:0,value:0,purchases:0};x.quantity+=Number(i.quantity)||0;x.value+=Number(i.line_total)||Number(i.quantity)*Number(i.rate)||0;x.purchases++;map.set(i.product_id,x)});const rows=[...map.values()].sort((a,b)=>b.value-a.value);return `<div class="toolbar"><input id="itemAnalysisSearch" class="search" placeholder="Search items…"><span class="badge">${rows.length} items</span></div><section class="card"><div class="section-head"><div><h3>Item analysis</h3><p class="muted">A simple summary of purchased quantity and cost.</p></div></div><div id="itemAnalysisResults">${itemAnalysisTable(rows)}</div></section>`}
-function itemAnalysisTable(rows){return rows.length?`<div class="table-wrap"><table><thead><tr><th>Item</th><th>Purchased</th><th>Entries</th><th>Average cost</th><th>Total cost</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.quantity.toLocaleString()} ${esc(x.unit||'')}</td><td>${x.purchases}</td><td>${money(x.quantity?x.value/x.quantity:0)}</td><td class="money">${money(x.value)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty"><strong>No item data yet</strong>Saved bill items will appear here.</div>'}
-function rateDashboard(){const rows=currentPriceRows().map(r=>({...r,metrics:priceMetrics(r)})),top=rows.slice().sort((a,b)=>Number(b.rate)-Number(a.rate)).slice(0,10),max=Math.max(1,...top.map(r=>Number(r.rate)));return `<div class="toolbar"><input id="rateDashboardSearch" class="search" placeholder="Search product or unit…"><span class="badge good">${rows.length} current rates</span></div><div class="grid content-grid"><section class="card"><div class="section-head"><div><h3>Rate overview</h3><p class="muted">Highest current pack rates.</p></div></div><div class="report-bars">${top.map(r=>`<div class="bar-row"><span>${esc(r.product_name)}</span><div class="bar"><i style="width:${Number(r.rate)/max*100}%"></i></div><strong>${money(r.rate)}</strong></div>`).join('')||'<div class="empty">No rates yet.</div>'}</div></section><section class="card"><div class="section-head"><div><h3>Unit costing</h3><p class="muted">Pack, base-unit and gram rates in one place.</p></div></div><div id="rateDashboardResults">${rateDashboardTable(rows)}</div></section></div>`}
-function rateDashboardTable(rows){return rows.length?`<div class="table-wrap"><table><thead><tr><th>Product</th><th>Pack</th><th>Pack rate</th><th>Unit rate</th><th>Small unit rate</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.product_name)}</td><td>${esc(r.metrics.pack)}</td><td>${money(r.rate)}</td><td>${esc(r.metrics.primaryLabel)}: ${money(r.metrics.primary)}</td><td>${r.metrics.smallLabel?`${esc(r.metrics.smallLabel)}: ${unitMoney(r.metrics.small)}`:'—'}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No rates yet.</div>'}
-function purchaseOrders(){return `<section class="card erp-form"><div class="section-head"><div><h3>Create purchase order</h3><p class="muted">Create an order before receiving the supplier bill.</p></div></div><div class="form-grid four"><label>PO number<input id="poNumber" value="PO-${Date.now().toString().slice(-7)}"></label><label>Order date<input id="poDate" type="date" value="${localDate()}"></label><label>Expected date<input id="poExpected" type="date"></label><label>Vendor<select id="poVendor"><option value="">Select vendor…</option>${state.vendors.map(v=>`<option value="${v.id}">${esc(v.vendor_name)}</option>`).join('')}</select></label><label class="span-2">Product<select id="poProduct"><option value="">Select product…</option>${productOptions(state.products)}</select></label><label>Quantity<input id="poQty" type="number" min=".001" step=".001" value="1"></label><label>Rate (MVR)<input id="poRate" type="number" min="0" step=".001"></label></div><div class="dialog-actions"><button id="savePo" class="btn primary">Create Purchase Order</button></div></section><section class="card"><div class="section-head"><h3>Purchase orders</h3><span class="badge">${state.purchaseOrders.length} orders</span></div>${poTable(state.purchaseOrders)}</section>`}
-function poTable(rows){return rows.length?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>PO number</th><th>Vendor</th><th>Status</th><th>Total</th></tr></thead><tbody>${rows.map(po=>`<tr><td>${esc(po.order_date)}</td><td>${esc(po.po_number)}</td><td>${esc(po.vendor_name)}</td><td><span class="badge ${po.status==='received'?'good':'warn'}">${esc(po.status)}</span></td><td class="money">${money(po.total_amount)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty"><strong>No purchase orders</strong>Create the first order above.</div>'}
-async function savePurchaseOrder(){const vendor=state.vendors.find(v=>String(v.id)===$('#poVendor').value),product=state.products.find(p=>String(p.id)===$('#poProduct').value),qty=Number($('#poQty').value),rate=Number($('#poRate').value),poNumber=$('#poNumber').value.trim();if(!poNumber||!vendor||!product||qty<=0||rate<0)return toast('Complete PO number, vendor, product, quantity and rate');const pack=inferPack(product),order={po_number:poNumber,order_date:$('#poDate').value,expected_date:$('#poExpected').value||'',vendor_id:vendor.id,vendor_name:vendor.vendor_name,subtotal:qty*rate,total_amount:qty*rate,status:'draft'},items=[{product_id:product.id,product_name:product.name,category:canonicalCategory(product.category),quantity:qty,purchase_unit:product.purchase_unit,pack_quantity:pack.pack_quantity,pack_size:pack.pack_size,pack_size_unit:pack.pack_size_unit,rate}];const {error}=await db.rpc('create_supply_purchase_order',{p_order:order,p_items:items});if(error)return toast(error.message);await load();toast('Purchase order created atomically');render()}
-function inventory(){const map=new Map(state.inventory.map(i=>[i.product_id,i]));return `<section class="card erp-form"><div class="section-head"><div><h3>Record stock movement</h3><p class="muted">Purchases are added automatically from bills. Use this for opening stock, usage and adjustments.</p></div></div><div class="form-grid four"><label class="span-2">Product<select id="movementProduct"><option value="">Select product…</option>${productOptions(state.products)}</select></label><label>Movement<select id="movementType"><option value="opening">Opening stock</option><option value="usage">Stock out / usage</option><option value="adjustment_in">Adjustment in</option><option value="adjustment_out">Adjustment out</option></select></label><label>Quantity<input id="movementQty" type="number" min=".001" step=".001" value="1"></label><label>Reorder level<input id="movementReorder" type="number" min="0" step=".001" value="0"></label><label class="span-2">Notes<input id="movementNotes"></label></div><div class="dialog-actions"><button id="saveMovement" class="btn primary">Save Movement</button></div></section><div class="toolbar"><input id="inventorySearch" class="search" placeholder="Search inventory…"><span class="badge">${state.movements.length} movements</span></div><div id="inventoryResults"><div class="table-wrap"><table><thead><tr><th>Product</th><th>Unit</th><th>On hand</th><th>Reorder level</th><th>Status</th></tr></thead><tbody>${state.products.filter(p=>p.name).map(p=>{const x=map.get(p.id)||{};const low=Number(x.quantity||0)<=Number(x.reorder_level||0);return `<tr><td>${esc(p.name)}</td><td>${esc(p.purchase_unit||'—')}</td><td>${Number(x.quantity||0)}</td><td>${Number(x.reorder_level||0)}</td><td><span class="badge ${low?'warn':'good'}">${low?'Low':'In stock'}</span></td></tr>`}).join('')}</tbody></table></div></div>`}
-async function saveMovement(){const product=state.products.find(p=>String(p.id)===$('#movementProduct').value),type=$('#movementType').value,qty=Number($('#movementQty').value),reorder=Number($('#movementReorder').value)||0;if(!product||qty<=0)return toast('Select a product and valid quantity');const {error}=await db.rpc('record_supply_inventory_movement',{p_product_id:product.id,p_movement_type:type,p_quantity:qty,p_purchase_unit:product.purchase_unit,p_reorder_level:reorder,p_notes:$('#movementNotes').value});if(error)return toast(error.message);await load();toast('Inventory movement saved atomically');render()}
-function reports(){const categories=[...new Set(state.billItems.map(i=>i.category).filter(Boolean))].sort();return `<section class="card report-filter"><div class="section-head"><div><h3>Purchase reports</h3><p class="muted">Filter bills by date, vendor, category, payment or GST.</p></div></div><div class="form-grid four"><label>From date<input id="reportFrom" type="date"></label><label>To date<input id="reportTo" type="date"></label><label>Vendor<select id="reportVendor"><option value="">All vendors</option>${state.vendors.map(v=>`<option>${esc(v.vendor_name)}</option>`).join('')}</select></label><label>Category<select id="reportCategory"><option value="">All categories</option>${categories.map(c=>`<option>${esc(c)}</option>`).join('')}</select></label><label>Payment<select id="reportPayment"><option value="">All statuses</option><option>paid</option><option>pending</option><option>partial</option></select></label><label>GST<select id="reportGst"><option value="">All GST types</option><option value="none">No GST</option><option value="included">Included</option><option value="added">Added</option></select></label></div></section><div id="reportResults">${reportResults(state.bills)}</div>`}
-function reportResults(bills){const agg={};bills.forEach(b=>agg[b.vendor_name]=(agg[b.vendor_name]||0)+Number(b.total_amount));const rows=Object.entries(agg).sort((a,b)=>b[1]-a[1]),max=rows[0]?.[1]||1,total=bills.reduce((a,b)=>a+Number(b.total_amount),0),gst=bills.reduce((a,b)=>a+Number(b.gst_amount),0);return `<div class="grid kpi-grid">${kpi('BILLS',bills.length,'Filtered records')}${kpi('PURCHASES',money(total),'Grand total')}${kpi('GST',money(gst),'Tax amount')}${kpi('VENDORS',rows.length,'Used in result')}</div><div class="grid content-grid"><section class="card"><div class="section-head"><h3>Vendor spending</h3></div><div class="report-bars">${rows.length?rows.slice(0,12).map(([n,v])=>`<div class="bar-row"><span>${esc(n)}</span><div class="bar"><i style="width:${v/max*100}%"></i></div><strong>${money(v)}</strong></div>`).join(''):'<div class="empty">No matching report data.</div>'}</div></section><section class="card"><h3>Filtered bills</h3>${billTable(bills.slice(0,20))}</section></div>`}
-function filterReports(){const from=$('#reportFrom').value,to=$('#reportTo').value,vendor=$('#reportVendor').value,category=$('#reportCategory').value,payment=$('#reportPayment').value,gst=$('#reportGst').value;let allowed=null;if(category){allowed=new Set(state.billItems.filter(i=>i.category===category).map(i=>i.bill_id))}const rows=state.bills.filter(b=>(!from||b.bill_date>=from)&&(!to||b.bill_date<=to)&&(!vendor||b.vendor_name===vendor)&&(!payment||b.payment_status===payment)&&(!gst||b.gst_type===gst)&&(!allowed||allowed.has(b.id)));$('#reportResults').innerHTML=reportResults(rows)}
-function analytics(){const vendor={};state.bills.forEach(b=>{const x=vendor[b.vendor_name]||(vendor[b.vendor_name]={bills:0,total:0,last:''});x.bills++;x.total+=Number(b.total_amount);if(b.bill_date>x.last)x.last=b.bill_date});const categories={};state.billItems.forEach(i=>categories[i.category||'Uncategorised']=(categories[i.category||'Uncategorised']||0)+Number(i.line_total));const rateChanges=[];const grouped={};state.rates.slice().sort((a,b)=>a.effective_date.localeCompare(b.effective_date)).forEach(r=>{const prev=grouped[r.product_id];if(prev&&Number(prev.rate)>0){const diff=Number(r.rate)-Number(prev.rate);rateChanges.push({...r,previous:Number(prev.rate),difference:diff,percent:diff/Number(prev.rate)*100})}grouped[r.product_id]=r});return `<div class="grid kpi-grid">${kpi('VENDOR SPEND',money(state.bills.reduce((a,b)=>a+Number(b.total_amount),0)),'All vendors')}${kpi('TOP CATEGORY',Object.entries(categories).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—','By purchased value')}${kpi('PRICE CHANGES',rateChanges.length,'Comparable rates')}${kpi('AVERAGE BILL',money(state.bills.length?state.bills.reduce((a,b)=>a+Number(b.total_amount),0)/state.bills.length:0),'Per bill')}</div><div class="grid content-grid"><section class="card"><div class="section-head"><h3>Vendor performance</h3></div><div class="table-wrap"><table><thead><tr><th>Vendor</th><th>Bills</th><th>Total spending</th><th>Average bill</th><th>Last purchase</th></tr></thead><tbody>${Object.entries(vendor).sort((a,b)=>b[1].total-a[1].total).map(([name,x])=>`<tr><td>${esc(name)}</td><td>${x.bills}</td><td>${money(x.total)}</td><td>${money(x.total/x.bills)}</td><td>${esc(x.last)}</td></tr>`).join('')}</tbody></table></div></section><section class="card"><div class="section-head"><h3>Recent price changes</h3></div>${rateChanges.length?`<div class="table-wrap"><table><thead><tr><th>Product</th><th>Previous</th><th>New</th><th>Change</th></tr></thead><tbody>${rateChanges.slice(-15).reverse().map(r=>`<tr><td>${esc(r.product_name)}</td><td>${money(r.previous)}</td><td>${money(r.rate)}</td><td><span class="badge ${r.difference<=0?'good':'warn'}">${r.percent>=0?'+':''}${r.percent.toFixed(1)}%</span></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty"><strong>No comparable rates yet</strong>At least two purchases of a product are needed.</div>'}</section></div>`}
-function insights(){return `<div class="grid insight-menu"><button class="card insight-link" onclick="go('item-analysis')"><span>◫</span><div><strong>Item Analysis</strong><small>Quantity and item costs</small></div><b>›</b></button><button class="card insight-link" onclick="go('rate-dashboard')"><span>↗</span><div><strong>Rate Dashboard</strong><small>Pack, unit and gram rates</small></div><b>›</b></button><button class="card insight-link" onclick="go('reports')"><span>▤</span><div><strong>Reports</strong><small>Filter purchases and GST</small></div><b>›</b></button><button class="card insight-link" onclick="go('analytics')"><span>◒</span><div><strong>Business Analytics</strong><small>Vendors and price changes</small></div><b>›</b></button></div>`}
-function settings(){return `<section class="card"><h3>Settings</h3><div class="setting-row"><div><strong>Currency</strong><p class="muted">Used throughout the application</p></div><span>MVR</span></div><div class="setting-row"><div><strong>Database</strong><p class="muted">Supabase live connection</p></div><span class="badge good">Connected</span></div></section><section class="card settings-tools"><h3>More tools</h3><div class="tool-buttons"><button class="btn" onclick="go('purchase-orders')">Purchase Orders</button><button class="btn" onclick="go('inventory')">Inventory</button><button class="btn" onclick="go('backup')">Data Backup</button></div></section>`}
-function backup(){return `<section class="card"><h3>Complete Data Backup</h3><p class="muted" style="margin:8px 0 20px">Download all currently accessible ERP records as one JSON file. Database restoration is an administrator operation and is intentionally not performed from the browser.</p><div class="toolbar" style="justify-content:flex-start"><button id="downloadBackup" class="btn primary">Download complete backup</button></div></section>`}
-function render(){const f={dashboard,'new-bill':newBill,'bill-history':()=>`<div class="toolbar"><input id="billSearch" class="search" placeholder="Search bills…"></div><div id="billResults">${billTable(state.bills)}</div>`,insights,'item-analysis':itemAnalysis,'rate-dashboard':rateDashboard,products:()=>listPage('products'),vendors:()=>listPage('vendors'),'purchase-orders':purchaseOrders,'rate-history':()=>rates(false),'price-cards':()=>rates(true),inventory,reports,analytics,settings,backup};const view=f[state.page]||dashboard;$('#page').innerHTML=view();bindPage()}
-function bindPage(){
- if(state.page==='new-bill')bindBill();
- if(state.page==='bill-history'){const button=document.createElement('button');button.type='button';button.className='btn primary';button.textContent='＋ Add Bill';button.onclick=startBill;$('#billSearch')?.closest('.toolbar')?.append(button)}
- const searchMap={billSearch:['billResults',q=>billTable(state.bills.filter(b=>`${b.bill_number} ${b.vendor_name} ${b.bill_date} ${b.payment_status} ${b.payment_method} ${b.total_amount}`.toLowerCase().includes(q)))],rateSearch:['rateResults',q=>rateTable(state.rates.filter(r=>`${r.product_name} ${r.vendor_name} ${r.unit} ${r.effective_date} ${r.rate}`.toLowerCase().includes(q)))],cardSearch:['cardResults',q=>priceCardHtml(currentPriceRows().filter(r=>`${r.product_name} ${r.vendor_name} ${r.unit} ${r.effective_date}`.toLowerCase().includes(q)))]};
- Object.entries(searchMap).forEach(([id,[out,fn]])=>{const e=$('#'+id);if(e)e.oninput=()=>$('#'+out).innerHTML=fn(e.value.toLowerCase())});
- if($('#listSearch'))$('#listSearch').oninput=e=>{const q=e.target.value.toLowerCase(),kind=state.page;$('#listResults').innerHTML=dataTable(kind,(kind==='products'?state.products.filter(p=>p.name?.trim()):state.vendors).filter(x=>JSON.stringify(x).toLowerCase().includes(q)))};
- if($('#inventorySearch'))$('#inventorySearch').oninput=e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('#inventoryResults tbody tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(q))};
- if($('#itemAnalysisSearch'))$('#itemAnalysisSearch').oninput=e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('#itemAnalysisResults tbody tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(q))};
- if($('#rateDashboardSearch'))$('#rateDashboardSearch').oninput=e=>{const q=e.target.value.toLowerCase(),rows=currentPriceRows().map(r=>({...r,metrics:priceMetrics(r)})).filter(r=>`${r.product_name} ${r.vendor_name} ${r.unit} ${r.metrics.pack}`.toLowerCase().includes(q));$('#rateDashboardResults').innerHTML=rateDashboardTable(rows)};
- if(state.page==='purchase-orders'){const section=document.querySelectorAll('.card')[1],input=document.createElement('input');input.className='search';input.placeholder='Search PO, vendor, date, status or total…';section.querySelector('.section-head').append(input);input.oninput=()=>{const q=input.value.toLowerCase();section.querySelectorAll('tbody tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(q))}}
- if($('#createRecord'))$('#createRecord').onclick=()=>state.page==='vendors'?openVendor():toast('Products are imported from the master catalogue');
- if($('#downloadBackup'))$('#downloadBackup').onclick=downloadBackup;
- if($('#savePo'))$('#savePo').onclick=savePurchaseOrder;
- if($('#saveMovement'))$('#saveMovement').onclick=saveMovement;
- ['reportFrom','reportTo','reportVendor','reportCategory','reportPayment','reportGst'].forEach(id=>{if($('#'+id))$('#'+id).onchange=filterReports});
+
+async function fetchAll(table, order, ascending = true) {
+  const result = [];
+  for (let from = 0; ; from += 1000) {
+    let query = db.from(table).select('*').range(from, from + 999);
+    if (order) query = query.order(order, { ascending });
+    const { data, error } = await query;
+    if (error) throw error;
+    result.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  return result;
 }
-function openVendor(prefill=''){state.editingVendorId=null;const d=$('#vendorDialog'),form=$('#vendorForm');form.reset();form.querySelector('[name=vendor_name]').value=prefill;d.querySelector('h3').textContent='Add Supplier';form.querySelector('[value=save]').textContent='Save Supplier';d.showModal()}
-window.editVendor=id=>{const v=state.vendors.find(x=>x.id===id);if(!v)return toast('Supplier not found');state.editingVendorId=id;const d=$('#vendorDialog'),form=$('#vendorForm');form.elements.vendor_name.value=v.vendor_name||'';form.elements.tin_number.value=v.tin_number||'';form.elements.contact_number.value=v.contact_number||'';form.elements.address.value=v.address||'';form.elements.bank_details.value=v.bank_details||'';d.querySelector('h3').textContent='Edit Supplier';form.querySelector('[value=save]').textContent='Update Supplier';d.showModal()}
-function setupLineEditor(){const editor=document.querySelector('.item-fields');editor.innerHTML=`<label class="description-field">Description<select id="productSelect"><option value="">Choose product…</option>${productOptions(state.products)}</select></label><label>Qty<input id="itemQty" type="number" min=".001" step=".001" value="1"></label><label>Packing format<input id="packFormat" value="1x1" placeholder="500x10" inputmode="decimal"></label><label>Unit<select id="packUnit"><option>PC</option><option>KG</option><option>G</option><option>L</option><option>ML</option><option>M</option><option>DOZ</option><option>PKT</option><option>BOX</option><option>PACKAGE</option></select></label><label>Rate (MVR)<input id="itemRate" type="number" min="0" step=".001" placeholder="0.00"></label><label class="gst-check"><span>Add GST</span><input id="itemGst" type="checkbox"><small>8% automatic</small></label><div class="line-total-preview"><small>Line total</small><strong id="lineTotal">MVR 0.00</strong><small id="unitConversion"></small><small id="gramConversion"></small></div><input id="itemUnit" type="hidden" value="PC"><input id="categorySelect" type="hidden" value="">`;$('#addItem').textContent='＋ Add row'}
-function bindBill(){
- setupLineEditor();renderItems();mountGstFields();$('#vendorSelect').onchange=e=>{if(e.target.value==='__create'){openVendor();e.target.value='';updateBillFlow();return}state.selectedVendor=state.vendors.find(v=>String(v.id)===e.target.value)||null;const s=$('#vendorSummary');if(!state.selectedVendor){s.classList.add('hidden');updateBillFlow();return}s.classList.remove('hidden');s.innerHTML=`<div><small>Vendor</small><strong>${esc(state.selectedVendor.vendor_name)}</strong></div><div><small>TIN</small><strong>${esc(state.selectedVendor.tin_number||'Not available')}</strong></div><div><small>Mobile</small><strong>${esc(state.selectedVendor.contact_number||'Not available')}</strong></div>`;updateBillFlow()};
- ['bill_number','bill_date'].forEach(name=>$('#billForm').elements[name].addEventListener('input',updateBillFlow));
- $('#categorySelect').onchange=e=>{const category=e.target.value;const rows=category?state.products.filter(p=>canonicalCategory(p.category)===category):state.products;$('#productSelect').innerHTML=`<option value="">Choose product…</option>${productOptions(rows)}`;clearPackFields()};
- $('#productSelect').onchange=e=>{const p=state.products.find(x=>String(x.id)===e.target.value);if(p){const pack=inferPack(p);$('#itemRate').value=p.rate??'';$('#itemUnit').value=normalizeUnit(p.purchase_unit||p.unit);$('#packFormat').value=`${pack.pack_quantity}x${pack.pack_size}`;$('#packUnit').value=pack.pack_size_unit==='PCS'?'PC':pack.pack_size_unit;$('#categorySelect').value=canonicalCategory(p.category);updatePackPreview()}};
- ['itemQty','itemRate','packFormat','packUnit','itemUnit','itemGst'].forEach(id=>$('#'+id).addEventListener('input',updatePackPreview));
- $('#addItem').onclick=addCurrentItem;
- $('#saveBillBtn').onclick=saveBill;
- $('#billForm').onsubmit=e=>{e.preventDefault();saveBill()};
- updateBillFlow();
+
+async function loadData() {
+  const { data: member, error: memberError } = await db.from('supply_members').select('active').maybeSingle();
+  if (memberError) throw memberError;
+  if (!member?.active) throw new Error('This account is not an active SupplyFlow member.');
+  const [products, vendors, bills, billItems, rates] = await Promise.all([
+    fetchAll('supply_products', 'name'),
+    fetchAll('supply_vendors', 'vendor_name'),
+    fetchAll('supply_bills', 'bill_date', false),
+    fetchAll('supply_bill_items'),
+    fetchAll('supply_rate_history', 'effective_date', false)
+  ]);
+  Object.assign(state, { products, vendors, bills, billItems, rates });
+  $('#liveStatus').textContent = `● Live · ${products.length} products`;
 }
-function updateBillFlow(){const form=$('#billForm');if(!form)return;const ready=Boolean(state.selectedVendor&&String(form.elements.bill_number.value).trim()&&form.elements.bill_date.value);$('#itemEntrySection')?.classList.toggle('hidden',!ready);$('#billFinish')?.classList.toggle('hidden',!ready||!state.items.length)}
-function mountGstFields(){const anchor=$('#billMessage');if(!anchor||$('#billSummary'))return;anchor.insertAdjacentHTML('beforebegin',`<div id="billSummary" class="bill-summary"></div>`);updateBillSummary()}
-function billTotals(){const subtotal=state.items.reduce((a,x)=>a+x.quantity*x.rate,0),gst=state.items.reduce((a,x)=>a+lineAmounts(x).gst,0);return {gross:subtotal,subtotal,gst,total:subtotal+gst,type:gst?'added':'none',rate:gst?8:0}}
-function updateBillSummary(){const box=$('#billSummary');if(!box)return;const t=billTotals();box.innerHTML=`<div><span>Subtotal</span><strong>${money(t.subtotal)}</strong></div><div><span>GST</span><strong>${money(t.gst)}</strong></div><div class="grand"><span>Grand total</span><strong>${money(t.total)}</strong></div>`;renderItems();updateBillFlow()}
-function readPackage(){const value=$('#packFormat').value.trim(),match=value.match(/^(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)$/i);return match?{pack_quantity:Number(match[1]),pack_size:Number(match[2])}:null}
-function clearPackFields(){$('#productSelect').value='';$('#itemQty').value=1;$('#itemRate').value='';$('#itemUnit').value='PC';$('#packFormat').value='1x1';$('#packUnit').value='PC';$('#itemGst').checked=false;updatePackPreview();$('#productSelect').focus()}
-function updatePackPreview(){const p=state.products.find(x=>String(x.id)===$('#productSelect').value),rate=Number($('#itemRate').value),pack=readPackage(),unit=$('#packUnit').value,qty=Number($('#itemQty').value)||0,gst=$('#itemGst')?.checked,total=qty*rate*(gst?1.08:1),c=pack?convertedRates(rate,pack.pack_quantity,pack.pack_size,unit):{base:0,gram:null};if($('#lineTotal'))$('#lineTotal').textContent=money(total);if($('#unitConversion'))$('#unitConversion').textContent=pack?`${unitMoney(c.base)} / ${unit}`:'';if($('#gramConversion'))$('#gramConversion').textContent=c.gram==null?'':`${unitMoney(c.gram)} / 1 G`;if(!p){$('#packPreview').textContent='Choose a description to begin.';return}if(!pack){$('#packPreview').innerHTML='<strong>Use packing format like 12x1 or 500x10.</strong>';return}$('#packPreview').textContent=''}
-function billError(message){const box=$('#billMessage');if(box)box.textContent=message;toast(message)}
-function addCurrentItem(){const p=state.products.find(x=>String(x.id)===$('#productSelect').value),quantity=Number($('#itemQty').value),raw=$('#itemRate').value,rate=Number(raw),pack=readPackage(),pack_size_unit=$('#packUnit').value,purchase_unit=$('#itemUnit').value.trim(),add_gst=$('#itemGst').checked;if(!p)return billError('Please select a description / product');if(!Number.isFinite(quantity)||quantity<=0)return billError('Quantity must be more than zero');if(raw===''||!Number.isFinite(rate)||rate<0)return billError('Enter a valid rate');if(!purchase_unit)return billError('Select the unit');if(!pack||pack.pack_quantity<=0||pack.pack_size<=0)return billError('Package must use 0x0 format, for example 12x1');const {pack_quantity,pack_size}=pack,price_per_base_unit=rate/(pack_quantity*pack_size);state.items.push({product_id:p.id,product_name:p.name,category:canonicalCategory(p.category),quantity,rate,unit:purchase_unit,purchase_unit,pack_quantity,pack_size,pack_size_unit,price_per_base_unit,add_gst});$('#billMessage').textContent='';clearPackFields();renderItems();updateBillSummary();return true}
-async function saveBill(){const form=$('#billForm'),button=$('#saveBillBtn');if(!form)return;if(!state.selectedVendor)return billError('Please select a vendor');if($('#productSelect').value&&!addCurrentItem())return;if(!state.items.length)return billError('Add at least one product before saving');const fd=new FormData(form),billNumber=String(fd.get('bill_number')||'').trim(),billDate=fd.get('bill_date');if(!billNumber)return billError('Enter a bill number');if(!billDate)return billError('Select a bill date');button.disabled=true;button.textContent='Saving…';$('#billMessage').textContent='';const totals=billTotals(),vendorId=state.selectedVendor.id,bill={bill_number:billNumber,bill_date:billDate,vendor_id:vendorId,vendor_name:state.selectedVendor.vendor_name,vendor_tin:state.selectedVendor.tin_number||'',vendor_mobile:state.selectedVendor.contact_number||'',subtotal:totals.subtotal,gst_type:totals.type,gst_rate:totals.rate,gst_amount:totals.gst,total_amount:totals.total,payment_status:fd.get('payment_status'),payment_method:fd.get('payment_method'),notes:fd.get('notes')},items=state.items.map(x=>({...x,gst_amount:lineAmounts(x).gst}));try{const editing=state.editingBillId;const {error}=editing?await db.rpc('update_supply_bill',{p_bill_id:editing,p_bill:bill,p_items:items}):await db.rpc('create_supply_bill',{p_bill:bill,p_items:items});if(error)throw error;state.items=[];state.editingBillId=null;state.selectedVendor=null;await load();const saved=editing?state.bills.find(b=>b.id===editing):state.bills.find(b=>b.bill_number===billNumber&&String(b.vendor_id)===String(vendorId)&&b.bill_date===billDate);state.lastSavedId=saved?.id||null;toast(editing?'Bill updated':'Bill saved');go('new-bill');window.scrollTo({top:0,behavior:'smooth'});setTimeout(()=>$('#vendorSelect')?.focus(),150)}catch(error){billError(error.message||'Could not save bill');button.disabled=false;button.textContent=state.editingBillId?'Save Changes':'Save Bill'}}
-async function saveVendor(e){e.preventDefault();const fd=new FormData(e.target),payload=Object.fromEntries(fd.entries()),editing=state.editingVendorId;let data,error;if(editing){({data,error}=await db.from('supply_vendors').update(payload).eq('id',editing).select().single())}else{payload.source_id=Math.max(0,...state.vendors.map(v=>v.source_id||0))+1;payload.total_budget=0;({data,error}=await db.from('supply_vendors').insert(payload).select().single())}if(error)return toast(error.message);if(editing)state.vendors=state.vendors.map(v=>v.id===editing?data:v);else state.vendors.push(data);state.vendors.sort((a,b)=>a.vendor_name.localeCompare(b.vendor_name));state.editingVendorId=null;state.selectedVendor=data;$('#vendorDialog').close();toast(editing?'Supplier updated':'Supplier created');if(state.page==='new-bill'){render();setTimeout(()=>{$('#vendorSelect').value=String(data.id);$('#vendorSelect').dispatchEvent(new Event('change'))})}else render()}
-function downloadBackup(){const payload={version:2,exported_at:new Date().toISOString(),record_counts:{products:state.products.length,vendors:state.vendors.length,bills:state.bills.length,bill_items:state.billItems.length,rate_history:state.rates.length,inventory:state.inventory.length,purchase_orders:state.purchaseOrders.length,inventory_movements:state.movements.length,settings:state.settings.length},products:state.products,vendors:state.vendors,bills:state.bills,bill_items:state.billItems,rate_history:state.rates,inventory:state.inventory,purchase_orders:state.purchaseOrders,inventory_movements:state.movements,settings:state.settings};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a'),url=URL.createObjectURL(blob);a.href=url;a.download=`supply-backup-${localDate()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Complete backup downloaded')}
-let sessionVersion=0;
-function showSignedOut(){sessionVersion++;state.lastSavedId=null;closeMenu();$('#appShell').classList.add('hidden');$('#loginView').classList.remove('hidden');$('#loginPassword').value='';$('#loginPassword').type='password';$('#togglePassword').textContent='Show';$('#togglePassword').setAttribute('aria-pressed','false');$('#syncState').textContent='● Offline'}
-async function applySession(session){const version=++sessionVersion;if(!session){showSignedOut();return}$('#loginView').classList.add('hidden');$('#appShell').classList.remove('hidden');$('#syncState').textContent='● Loading data…';$('#page').innerHTML='<div class="card loading-state"><strong>Loading SupplyFlow…</strong></div>';try{await load();if(version!==sessionVersion)return;if(state.page==='dashboard'){state.page='new-bill';state.items=[];state.selectedVendor=null}const label=state.editingBillId&&state.page==='new-bill'?'Modify Bill':pages.find(x=>x[0]===state.page)?.[2]||pageLabels[state.page]||state.page;nav();$('#pageTitle').textContent=label;$('#pageEyebrow').textContent='SUPPLY MANAGEMENT';$('#quickBill').classList.toggle('hidden',state.page==='new-bill');$('#syncState').textContent=`● Live · ${state.products.length} products`;render()}catch(error){if(version!==sessionVersion)return;$('#syncState').textContent='● Data error';$('#page').innerHTML=`<div class="card load-error"><strong>Database could not load</strong><p>${esc(error.message||'Unknown database error')}</p><div class="dialog-actions"><button class="btn" id="retryLoad">Retry</button><button class="btn danger" id="errorLogout">Logout</button></div></div>`;$('#retryLoad').onclick=()=>applySession(session);$('#errorLogout').onclick=logout}}
-async function logout(){const button=$('#logoutBtn');button.disabled=true;button.innerHTML='<span class="ico">…</span><span>Logging out</span>';sessionVersion++;try{const {error}=await db.auth.signOut({scope:'local'});if(error)throw error;showSignedOut();toast('Logged out')}catch(error){toast(error.message||'Logout failed—please try again')}finally{button.disabled=false;button.innerHTML='↪ <span>Logout</span>'}}
-async function init(){nav();$('#togglePassword').onclick=()=>{const input=$('#loginPassword'),show=input.type==='password';input.type=show?'text':'password';$('#togglePassword').textContent=show?'Hide':'Show';$('#togglePassword').setAttribute('aria-label',show?'Hide password':'Show password');$('#togglePassword').setAttribute('aria-pressed',String(show));input.focus()};$('#loginForm').onsubmit=async e=>{e.preventDefault();const username=$('#loginUsername').value.trim().toLowerCase(),password=$('#loginPassword').value,submit=e.submitter;$('#loginError').textContent='';submit.disabled=true;const {data,error}=await db.functions.invoke('username-login',{body:{username,password}});if(!error&&data?.access_token&&data?.refresh_token){const {error:sessionError}=await db.auth.setSession({access_token:data.access_token,refresh_token:data.refresh_token});if(!sessionError){submit.disabled=false;return}}submit.disabled=false;$('#loginError').textContent='Username or password is incorrect'};$('#logoutBtn').onclick=logout;$('#quickBill').onclick=startBill;$('#menuBtn').onclick=()=>{const open=document.querySelector('.sidebar').classList.toggle('open');$('#sidebarBackdrop').classList.toggle('open',open);$('#menuBtn').setAttribute('aria-expanded',String(open))};$('#sidebarBackdrop').onclick=closeMenu;document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenu()});document.querySelectorAll('.close-dialog').forEach(x=>x.onclick=()=>$('#vendorDialog').close());$('#vendorForm').onsubmit=saveVendor;db.auth.onAuthStateChange((_,session)=>{setTimeout(()=>applySession(session),0)})}
+
+function renderNav() {
+  $('#nav').innerHTML = navigation.map(([id, label], index) => `<button data-view="${id}" class="${state.view === id ? 'active' : ''}"><span>${index + 1}</span> ${label}</button>`).join('');
+  document.querySelectorAll('[data-view]').forEach(button => button.onclick = event => {
+    event.preventDefault();
+    go(button.dataset.view);
+  });
+}
+
+function go(view) {
+  state.view = view;
+  renderNav();
+  render();
+  $('#nav').classList.remove('open');
+  $('#mobileBackdrop').classList.remove('open');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+window.go = go;
+
+function pageHead(title, subtitle, action = '') {
+  return `<div class="page-head"><div><p class="kicker">SUPPLYFLOW</p><h1>${title}</h1><p>${subtitle}</p></div>${action}</div>`;
+}
+
+function parsePack(value) {
+  const match = String(value || '').trim().match(/^(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)$/);
+  return match ? { quantity: Number(match[1]), size: Number(match[2]) } : null;
+}
+
+function inferPack(product) {
+  const text = `${product?.name || ''} ${product?.unit || ''}`.replace(/,/g, '');
+  const matches = [...text.matchAll(/(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*(kg|g|gm|ml|l|pcs?|pc)\b/gi)];
+  const match = matches.at(-1);
+  if (match) {
+    const raw = match[3].toUpperCase();
+    return { quantity: Number(match[1]), size: Number(match[2]), unit: /GM/.test(raw) ? 'G' : /PCS?/.test(raw) ? 'PC' : raw };
+  }
+  return { quantity: Number(product?.pack_quantity) || 1, size: Number(product?.pack_size) || 1, unit: String(product?.pack_size_unit || product?.unit || 'PC').toUpperCase() };
+}
+
+function conversion(rate, packQuantity, packSize, unit) {
+  const count = Number(packQuantity) * Number(packSize);
+  const base = count > 0 ? Number(rate) / count : 0;
+  const normalized = String(unit || '').toUpperCase();
+  const small = normalized === 'G' ? base : normalized === 'KG' ? base / 1000 : normalized === 'ML' ? base : normalized === 'L' ? base / 1000 : null;
+  return { base, small, smallLabel: ['G', 'KG'].includes(normalized) ? '1 gram' : ['ML', 'L'].includes(normalized) ? '1 ml' : '' };
+}
+
+function lineAmounts(item) {
+  const subtotal = Number(item.quantity) * Number(item.rate);
+  const gst = item.addGst ? subtotal * 0.08 : 0;
+  return { subtotal, gst, total: subtotal + gst };
+}
+
+function totals() {
+  return state.draftItems.reduce((sum, item) => {
+    const line = lineAmounts(item);
+    sum.subtotal += line.subtotal;
+    sum.gst += line.gst;
+    sum.total += line.total;
+    return sum;
+  }, { subtotal: 0, gst: 0, total: 0 });
+}
+
+function productOptions() {
+  return state.products.filter(product => product.name?.trim()).map(product => `<option value="${product.id}">${escapeHtml(product.name)}</option>`).join('');
+}
+
+function itemRows() {
+  if (!state.draftItems.length) return '<div class="empty">No rows yet. Add the first item above.</div>';
+  return `<div class="table-wrap"><table><thead><tr><th>Description</th><th>Qty</th><th>Packing</th><th>Unit</th><th>Rate</th><th>Base cost</th><th>1 gram/ml</th><th>GST</th><th>Total</th><th></th></tr></thead><tbody>${state.draftItems.map((item, index) => {
+    const amounts = lineAmounts(item);
+    const converted = conversion(item.rate, item.packQuantity, item.packSize, item.unit);
+    return `<tr><td><strong>${escapeHtml(item.productName)}</strong></td><td>${item.quantity}</td><td>${item.packQuantity}x${item.packSize}</td><td>${escapeHtml(item.unit)}</td><td>${money(item.rate)}</td><td>${preciseMoney(converted.base)}</td><td>${converted.small == null ? '—' : preciseMoney(converted.small)}</td><td>${item.addGst ? '8%' : '—'}</td><td class="money">${money(amounts.total)}</td><td><button class="button danger tiny" data-remove="${index}">Remove</button></td></tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+
+function summaryHtml() {
+  const value = totals();
+  return `<div class="summary"><div><span>Subtotal</span><strong>${money(value.subtotal)}</strong></div><div><span>GST</span><strong>${money(value.gst)}</strong></div><div class="grand"><span>Grand total</span><strong>${money(value.total)}</strong></div></div>`;
+}
+
+function entryView() {
+  const success = state.lastSaved ? `<div class="success">✓ Bill <strong>${escapeHtml(state.lastSaved.bill_number)}</strong> saved. This form is ready for the next bill.</div>` : '';
+  const editing = Boolean(state.editingBillId);
+  return `${pageHead(editing ? 'Modify supplier bill' : 'New supplier bill', 'Follow the three simple steps. Totals calculate automatically.')}${success}<div class="timeline">
+    <section class="timeline-step ready"><span class="step-dot">1</span><div class="card"><div class="step-title"><h2>Bill details</h2><small>Who and when</small></div><div class="grid three-cols"><label>Supplier<select id="vendor"><option value="">Choose supplier…</option>${state.vendors.map(vendor => `<option value="${vendor.id}" ${String(vendor.id) === String(state.draft.vendorId) ? 'selected' : ''}>${escapeHtml(vendor.vendor_name)}</option>`).join('')}</select></label><label>Invoice date<input id="billDate" type="date" value="${state.draft.date}"></label><label>Invoice number<input id="invoice" value="${escapeHtml(state.draft.invoice)}" placeholder="Enter invoice number"></label></div></div></section>
+    <section class="timeline-step ${state.draftItems.length ? 'ready' : ''}"><span class="step-dot">2</span><div class="card"><div class="step-title"><h2>Add item rows</h2><small>Repeat for every item</small></div><div class="grid item-editor"><label>Description<select id="product"><option value="">Choose product…</option>${productOptions()}</select></label><label>Qty<input id="quantity" type="number" min=".001" step=".001" value="1"></label><label>Packing<input id="packing" value="1x1" placeholder="500x10"></label><label>Unit<select id="unit">${units.map(unit => `<option>${unit}</option>`).join('')}</select></label><label>Rate (MVR)<input id="rate" type="number" min="0" step=".001" placeholder="0.00"></label><label class="check-field"><span>Add GST</span><input id="gst" type="checkbox"><small>8% automatic</small></label><div class="live-total"><small>LINE TOTAL</small><strong id="lineTotal">MVR 0.00</strong><small id="unitCost"></small><small id="smallCost"></small></div></div><div class="add-row"><button id="addRow" class="button primary">＋ Add row</button></div><div id="draftRows">${itemRows()}</div></div></section>
+    <section class="timeline-step ${state.draftItems.length ? 'ready' : ''}"><span class="step-dot">3</span><div class="card"><div class="step-title"><h2>Review & save</h2><small>${state.draftItems.length} item${state.draftItems.length === 1 ? '' : 's'}</small></div><div class="save-area">${summaryHtml()}<button id="saveBill" class="button primary" ${state.draftItems.length ? '' : 'disabled'}>${editing ? 'Save changes' : 'Save bill'}</button></div><p id="billError" class="error"></p></div></section>
+  </div>`;
+}
+
+function billTable(rows) {
+  if (!rows.length) return '<div class="card empty">No saved bills yet.</div>';
+  return `<div class="card table-wrap"><table><thead><tr><th>Date</th><th>Invoice</th><th>Supplier</th><th>Items</th><th>Total</th><th>Actions</th></tr></thead><tbody>${rows.map(bill => `<tr><td>${escapeHtml(bill.bill_date)}</td><td><strong>${escapeHtml(bill.bill_number)}</strong></td><td>${escapeHtml(bill.vendor_name)}</td><td>${state.billItems.filter(item => item.bill_id === bill.id).length}</td><td class="money">${money(bill.total_amount)}</td><td><div class="row-actions"><button class="button tiny" data-view-bill="${bill.id}">View</button><button class="button tiny" data-edit-bill="${bill.id}">Modify</button><button class="button danger tiny" data-delete-bill="${bill.id}">Delete</button></div></td></tr>`).join('')}</tbody></table></div>`;
+}
+
+function billsView() {
+  return `${pageHead('Bills', 'Search, review or correct a saved supplier bill.', '<button class="button primary" data-view="entry">＋ New bill</button>')}<div class="toolbar"><input id="billSearch" placeholder="Search invoice or supplier…"><span class="badge">${state.bills.length} bills</span></div><div id="billList">${billTable(state.bills)}</div>`;
+}
+
+function latestRateRows() {
+  const latest = new Map();
+  state.rates.forEach(rate => { if (!latest.has(rate.product_id)) latest.set(rate.product_id, rate); });
+  state.products.forEach(product => {
+    if (!latest.has(product.id) && product.rate != null) latest.set(product.id, { product_id: product.id, product_name: product.name, rate: product.rate, unit: product.unit, effective_date: 'Current' });
+  });
+  return [...latest.values()];
+}
+
+function rateMetrics(rate) {
+  const product = state.products.find(value => value.id === rate.product_id) || {};
+  const item = state.billItems.find(value => value.bill_id === rate.bill_id && value.product_id === rate.product_id);
+  const inferred = inferPack(product);
+  const packQuantity = Number(item?.pack_quantity) || inferred.quantity;
+  const packSize = Number(item?.pack_size) || inferred.size;
+  const unit = String(item?.pack_size_unit || inferred.unit || 'PC').toUpperCase();
+  return { packQuantity, packSize, unit, ...conversion(rate.rate, packQuantity, packSize, unit) };
+}
+
+function rateCards(rows) {
+  if (!rows.length) return '<div class="card empty">No rates found.</div>';
+  return `<div class="rate-grid">${rows.map(rate => {
+    const metric = rateMetrics(rate);
+    return `<article class="card rate-card"><span class="badge">${metric.packQuantity}x${metric.packSize} ${metric.unit}</span><h3>${escapeHtml(rate.product_name)}</h3><div class="rate-main">${money(rate.rate)} <small>pack</small></div><div class="rate-pairs"><div><small>BASE UNIT</small><strong>${preciseMoney(metric.base)} / ${metric.unit}</strong></div><div><small>${metric.smallLabel || 'SMALL UNIT'}</small><strong>${metric.small == null ? '—' : preciseMoney(metric.small)}</strong></div></div></article>`;
+  }).join('')}</div>`;
+}
+
+function ratesView() {
+  const rows = latestRateRows();
+  return `${pageHead('Current rates', 'Pack, base-unit and gram costs in one calm view.')}<div class="toolbar"><input id="rateSearch" placeholder="Search product or unit…"><span class="badge">${rows.length} current rates</span></div><div id="rateList">${rateCards(rows)}</div>`;
+}
+
+function supplierCards(rows) {
+  if (!rows.length) return '<div class="card empty">No suppliers found.</div>';
+  return `<div class="supplier-grid">${rows.map(vendor => `<article class="card supplier-card"><div class="supplier-head"><span class="avatar">${escapeHtml(vendor.vendor_name.charAt(0).toUpperCase())}</span><div><h3>${escapeHtml(vendor.vendor_name)}</h3><span class="badge">Supplier</span></div></div><p>☎ ${escapeHtml(vendor.contact_number || 'No phone')}</p><p>⌖ ${escapeHtml(vendor.address || 'No address')}</p><p>Tax ID: ${escapeHtml(vendor.tin_number || 'Not added')}</p><footer><strong>${money(vendor.total_budget)}</strong><button class="button tiny" data-edit-supplier="${vendor.id}">Edit</button></footer></article>`).join('')}</div>`;
+}
+
+function suppliersView() {
+  return `${pageHead('Suppliers', 'Keep supplier details close to every bill.', '<button id="addSupplier" class="button primary">＋ Add supplier</button>')}<div class="toolbar"><input id="supplierSearch" placeholder="Search suppliers…"><span class="badge">${state.vendors.length} suppliers</span></div><div id="supplierList">${supplierCards(state.vendors)}</div>`;
+}
+
+function billDetailView(id) {
+  const bill = state.bills.find(value => value.id === id);
+  const items = state.billItems.filter(item => item.bill_id === id);
+  if (!bill) return billsView();
+  return `${pageHead(`Invoice ${escapeHtml(bill.bill_number)}`, `${escapeHtml(bill.vendor_name)} · ${escapeHtml(bill.bill_date)}`, '<button class="button ghost" data-view="bills">← Back to bills</button>')}<section class="card"><div class="table-wrap"><table><thead><tr><th>Description</th><th>Qty</th><th>Packing</th><th>Unit</th><th>Rate</th><th>GST</th><th>Total</th></tr></thead><tbody>${items.map(item => `<tr><td>${escapeHtml(item.product_name)}</td><td>${item.quantity}</td><td>${item.pack_quantity}x${item.pack_size}</td><td>${escapeHtml(item.pack_size_unit)}</td><td>${money(item.rate)}</td><td>${money(item.gst_amount)}</td><td class="money">${money(Number(item.quantity) * Number(item.rate) + Number(item.gst_amount))}</td></tr>`).join('')}</tbody></table></div><div class="save-area">${summaryFromBill(bill)}<div class="row-actions"><button class="button" data-edit-bill="${id}">Modify</button><button class="button danger" data-delete-bill="${id}">Delete</button></div></div></section>`;
+}
+
+function summaryFromBill(bill) {
+  return `<div class="summary"><div><span>Subtotal</span><strong>${money(bill.subtotal)}</strong></div><div><span>GST</span><strong>${money(bill.gst_amount)}</strong></div><div class="grand"><span>Grand total</span><strong>${money(bill.total_amount)}</strong></div></div>`;
+}
+
+function render() {
+  const views = { entry: entryView, bills: billsView, rates: ratesView, suppliers: suppliersView };
+  $('#main').innerHTML = state.view.startsWith('bill:') ? billDetailView(Number(state.view.split(':')[1])) : (views[state.view] || entryView)();
+  $('#main').classList.remove('view-enter');
+  void $('#main').offsetWidth;
+  $('#main').classList.add('view-enter');
+  bindView();
+}
+
+function bindView() {
+  document.querySelectorAll('[data-view]').forEach(button => button.onclick = event => { event.preventDefault(); go(button.dataset.view); });
+  if (state.view === 'entry') bindEntry();
+  if (state.view === 'bills') bindBills();
+  if (state.view === 'rates') bindRates();
+  if (state.view === 'suppliers') bindSuppliers();
+  document.querySelectorAll('[data-view-bill]').forEach(button => button.onclick = () => { state.view = `bill:${button.dataset.viewBill}`; renderNav(); render(); });
+  document.querySelectorAll('[data-edit-bill]').forEach(button => button.onclick = () => editBill(Number(button.dataset.editBill)));
+  document.querySelectorAll('[data-delete-bill]').forEach(button => button.onclick = () => deleteBill(Number(button.dataset.deleteBill)));
+}
+
+function bindEntry() {
+  const syncDraft = () => {
+    state.draft.vendorId = $('#vendor').value;
+    state.draft.date = $('#billDate').value;
+    state.draft.invoice = $('#invoice').value;
+  };
+  ['vendor', 'billDate', 'invoice'].forEach(id => $('#' + id).addEventListener('input', syncDraft));
+  $('#product').onchange = event => {
+    const product = state.products.find(value => String(value.id) === event.target.value);
+    if (!product) return;
+    const pack = inferPack(product);
+    $('#packing').value = `${pack.quantity}x${pack.size}`;
+    $('#unit').value = units.includes(pack.unit) ? pack.unit : 'PC';
+    $('#rate').value = product.rate ?? '';
+    updateLinePreview();
+  };
+  ['quantity', 'packing', 'unit', 'rate', 'gst'].forEach(id => $('#' + id).addEventListener('input', updateLinePreview));
+  $('#addRow').onclick = event => { event.preventDefault(); addRow(); };
+  $('#saveBill').onclick = saveBill;
+  document.querySelectorAll('[data-remove]').forEach(button => button.onclick = () => {
+    state.draftItems.splice(Number(button.dataset.remove), 1);
+    render();
+  });
+}
+
+function updateLinePreview() {
+  const pack = parsePack($('#packing').value);
+  const rate = Number($('#rate').value) || 0;
+  const quantity = Number($('#quantity').value) || 0;
+  const withGst = $('#gst').checked;
+  const converted = pack ? conversion(rate, pack.quantity, pack.size, $('#unit').value) : { base: 0, small: null, smallLabel: '' };
+  $('#lineTotal').textContent = money(quantity * rate * (withGst ? 1.08 : 1));
+  $('#unitCost').textContent = pack ? `${preciseMoney(converted.base)} / ${$('#unit').value}` : 'Use packing like 500x10';
+  $('#smallCost').textContent = converted.small == null ? '' : `${preciseMoney(converted.small)} / ${converted.smallLabel}`;
+}
+
+function addRow() {
+  const product = state.products.find(value => String(value.id) === $('#product').value);
+  const pack = parsePack($('#packing').value);
+  const quantity = Number($('#quantity').value);
+  const rate = Number($('#rate').value);
+  if (!product) return toast('Choose a product');
+  if (!quantity || quantity <= 0) return toast('Enter a valid quantity');
+  if (!pack || pack.quantity <= 0 || pack.size <= 0) return toast('Packing must look like 500x10');
+  if ($('#rate').value === '' || rate < 0) return toast('Enter a valid rate');
+  const unit = $('#unit').value;
+  const converted = conversion(rate, pack.quantity, pack.size, unit);
+  state.draftItems.push({
+    productId: product.id, productName: product.name, category: product.category || 'Uncategorised',
+    quantity, packQuantity: pack.quantity, packSize: pack.size, unit, rate,
+    purchaseUnit: product.purchase_unit || product.unit || unit, addGst: $('#gst').checked,
+    pricePerBaseUnit: converted.base
+  });
+  render();
+  setTimeout(() => $('#product')?.focus(), 50);
+}
+
+async function saveBill() {
+  const vendor = state.vendors.find(value => String(value.id) === String(state.draft.vendorId));
+  if (!vendor) return showBillError('Choose a supplier');
+  if (!state.draft.date) return showBillError('Choose an invoice date');
+  if (!state.draft.invoice.trim()) return showBillError('Enter an invoice number');
+  if (!state.draftItems.length) return showBillError('Add at least one item row');
+  const button = $('#saveBill');
+  button.disabled = true;
+  button.textContent = 'Saving…';
+  const value = totals();
+  const bill = {
+    bill_number: state.draft.invoice.trim(), bill_date: state.draft.date,
+    vendor_id: vendor.id, vendor_name: vendor.vendor_name,
+    vendor_tin: vendor.tin_number || '', vendor_mobile: vendor.contact_number || '',
+    subtotal: value.subtotal, gst_type: value.gst ? 'added' : 'none', gst_rate: value.gst ? 8 : 0,
+    gst_amount: value.gst, total_amount: value.total,
+    payment_status: 'paid', payment_method: 'cash', notes: ''
+  };
+  const items = state.draftItems.map(item => ({
+    product_id: item.productId, product_name: item.productName, category: item.category,
+    quantity: item.quantity, unit: item.purchaseUnit, purchase_unit: item.purchaseUnit,
+    pack_quantity: item.packQuantity, pack_size: item.packSize, pack_size_unit: item.unit,
+    rate: item.rate, price_per_base_unit: item.pricePerBaseUnit,
+    gst_amount: lineAmounts(item).gst
+  }));
+  try {
+    const editing = state.editingBillId;
+    const response = editing
+      ? await db.rpc('update_supply_bill', { p_bill_id: editing, p_bill: bill, p_items: items })
+      : await db.rpc('create_supply_bill', { p_bill: bill, p_items: items });
+    if (response.error) throw response.error;
+    await loadData();
+    state.lastSaved = state.bills.find(value => value.bill_number === bill.bill_number && String(value.vendor_id) === String(vendor.id)) || null;
+    resetDraft();
+    toast(editing ? 'Bill updated' : 'Bill saved');
+    go('entry');
+  } catch (error) {
+    showBillError(error.message || 'Could not save bill');
+    button.disabled = false;
+    button.textContent = state.editingBillId ? 'Save changes' : 'Save bill';
+  }
+}
+
+function showBillError(message) {
+  if ($('#billError')) $('#billError').textContent = message;
+  toast(message);
+}
+
+function resetDraft() {
+  state.draftItems = [];
+  state.editingBillId = null;
+  state.draft = { vendorId: '', date: today(), invoice: '' };
+}
+
+function bindBills() {
+  $('#billSearch').oninput = event => {
+    const query = event.target.value.toLowerCase();
+    const rows = state.bills.filter(bill => `${bill.bill_number} ${bill.vendor_name} ${bill.bill_date} ${bill.total_amount}`.toLowerCase().includes(query));
+    $('#billList').innerHTML = billTable(rows);
+    bindView();
+  };
+}
+
+function editBill(id) {
+  const bill = state.bills.find(value => value.id === id);
+  if (!bill) return toast('Bill not found');
+  state.editingBillId = id;
+  state.lastSaved = null;
+  state.draft = { vendorId: bill.vendor_id, date: bill.bill_date, invoice: bill.bill_number };
+  state.draftItems = state.billItems.filter(item => item.bill_id === id).map(item => ({
+    productId: item.product_id, productName: item.product_name, category: item.category,
+    quantity: Number(item.quantity), packQuantity: Number(item.pack_quantity) || 1,
+    packSize: Number(item.pack_size) || 1, unit: item.pack_size_unit || 'PC',
+    rate: Number(item.rate), purchaseUnit: item.purchase_unit || item.unit,
+    addGst: Number(item.gst_amount) > 0, pricePerBaseUnit: Number(item.price_per_base_unit) || 0
+  }));
+  go('entry');
+}
+
+async function deleteBill(id) {
+  const bill = state.bills.find(value => value.id === id);
+  if (!bill || !confirm(`Delete invoice ${bill.bill_number}?`)) return;
+  const { error } = await db.rpc('delete_supply_bill', { p_bill_id: id });
+  if (error) return toast(error.message);
+  await loadData();
+  toast('Bill deleted');
+  go('bills');
+}
+
+function bindRates() {
+  const rows = latestRateRows();
+  $('#rateSearch').oninput = event => {
+    const query = event.target.value.toLowerCase();
+    $('#rateList').innerHTML = rateCards(rows.filter(rate => `${rate.product_name} ${rate.unit}`.toLowerCase().includes(query)));
+  };
+}
+
+function bindSuppliers() {
+  $('#addSupplier').onclick = () => openSupplier();
+  $('#supplierSearch').oninput = event => {
+    const query = event.target.value.toLowerCase();
+    $('#supplierList').innerHTML = supplierCards(state.vendors.filter(vendor => JSON.stringify(vendor).toLowerCase().includes(query)));
+    bindSupplierEdits();
+  };
+  bindSupplierEdits();
+}
+
+function bindSupplierEdits() {
+  document.querySelectorAll('[data-edit-supplier]').forEach(button => button.onclick = () => openSupplier(Number(button.dataset.editSupplier)));
+}
+
+function openSupplier(id = null) {
+  state.editingSupplierId = id;
+  const dialog = $('#supplierDialog');
+  const form = $('#supplierForm');
+  form.reset();
+  const vendor = state.vendors.find(value => value.id === id);
+  dialog.querySelector('h2').textContent = vendor ? 'Edit supplier' : 'Add supplier';
+  if (vendor) {
+    ['vendor_name', 'contact_number', 'tin_number', 'address', 'bank_details'].forEach(name => form.elements[name].value = vendor[name] || '');
+  }
+  dialog.showModal();
+}
+
+async function saveSupplier(event) {
+  event.preventDefault();
+  const payload = Object.fromEntries(new FormData(event.target).entries());
+  let response;
+  if (state.editingSupplierId) {
+    response = await db.from('supply_vendors').update(payload).eq('id', state.editingSupplierId).select().single();
+  } else {
+    payload.source_id = Math.max(0, ...state.vendors.map(value => value.source_id || 0)) + 1;
+    payload.total_budget = 0;
+    response = await db.from('supply_vendors').insert(payload).select().single();
+  }
+  if (response.error) return toast(response.error.message);
+  await loadData();
+  $('#supplierDialog').close();
+  toast(state.editingSupplierId ? 'Supplier updated' : 'Supplier added');
+  state.editingSupplierId = null;
+  if (state.view === 'suppliers') render();
+}
+
+async function applySession(session) {
+  if (!session) {
+    $('#app').classList.add('hidden');
+    $('#loginView').classList.remove('hidden');
+    return;
+  }
+  $('#loginView').classList.add('hidden');
+  $('#app').classList.remove('hidden');
+  $('#main').innerHTML = '<div class="card empty">Loading your supplier workspace…</div>';
+  try {
+    await loadData();
+    renderNav();
+    render();
+  } catch (error) {
+    $('#main').innerHTML = `<div class="card empty"><strong>Could not load data</strong><p>${escapeHtml(error.message)}</p></div>`;
+  }
+}
+
+async function login(event) {
+  event.preventDefault();
+  const button = event.submitter;
+  button.disabled = true;
+  $('#loginError').textContent = '';
+  const { data, error } = await db.functions.invoke('username-login', { body: { username: $('#loginUsername').value.trim().toLowerCase(), password: $('#loginPassword').value } });
+  if (!error && data?.access_token && data?.refresh_token) {
+    const result = await db.auth.setSession({ access_token: data.access_token, refresh_token: data.refresh_token });
+    if (!result.error) { button.disabled = false; return; }
+  }
+  button.disabled = false;
+  $('#loginError').textContent = 'Username or password is incorrect';
+}
+
+async function logout() {
+  await db.auth.signOut({ scope: 'local' });
+  resetDraft();
+  state.lastSaved = null;
+  $('#loginPassword').value = '';
+}
+
+function init() {
+  $('#loginForm').onsubmit = login;
+  $('#togglePassword').onclick = () => {
+    const input = $('#loginPassword');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    $('#togglePassword').textContent = show ? 'Hide' : 'Show';
+  };
+  $('#logoutButton').onclick = logout;
+  $('#menuButton').onclick = () => { $('#nav').classList.toggle('open'); $('#mobileBackdrop').classList.toggle('open'); };
+  $('#mobileBackdrop').onclick = () => { $('#nav').classList.remove('open'); $('#mobileBackdrop').classList.remove('open'); };
+  $('#supplierForm').onsubmit = saveSupplier;
+  document.querySelectorAll('[data-close]').forEach(button => button.onclick = () => $('#supplierDialog').close());
+  db.auth.onAuthStateChange((event, session) => setTimeout(() => applySession(session), 0));
+}
+
 init();
