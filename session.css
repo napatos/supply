@@ -1,0 +1,32 @@
+.loading-state,
+.load-error {
+  max-width: 680px;
+  margin: 8vh auto;
+  text-align: center;
+  padding: 34px;
+}
+
+.loading-state strong,
+.load-error strong {
+  display: block;
+  font: 800 20px Manrope, sans-serif;
+  margin-bottom: 8px;
+}
+
+.load-error {
+  border-color: #e7b9b6;
+  background: #fffafa;
+}
+
+.load-error p {
+  color: var(--red);
+}
+
+.load-error .dialog-actions {
+  justify-content: center;
+}
+
+#logoutBtn:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
