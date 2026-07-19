@@ -6,7 +6,7 @@ const unitMoney=n=>`MVR ${Number(n||0).toLocaleString(undefined,{minimumFraction
 const localDate=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Indian/Maldives',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const state={products:[],vendors:[],bills:[],billItems:[],rates:[],inventory:[],purchaseOrders:[],movements:[],settings:[],page:'dashboard',selectedVendor:null,items:[],poItems:[],editingBillId:null,editingVendorId:null,lastSavedId:null};
-const pages=[['dashboard','▦','Dashboard'],['new-bill','＋','Supplier Bill'],['bill-history','▤','Bills'],['products','□','Products'],['vendors','♙','Vendors'],['insights','◒','Insights'],['settings','⚙','Settings']];
+const pages=[['new-bill','＋','Bill Entry'],['bill-history','▤','Bills'],['rate-dashboard','↗','Rates'],['products','□','Products'],['vendors','♙','Vendors'],['settings','⚙','Settings']];
 const pageLabels={'item-analysis':'Item Analysis','rate-dashboard':'Rate Dashboard','purchase-orders':'Purchase Orders',inventory:'Inventory',reports:'Reports',analytics:'Analytics',backup:'Data Backup','price-cards':'Price Cards','rate-history':'Rate History'};
 const purchaseUnits=['KG','G','PC','DOZ','PKT','L','ML','M','BOX','PACKAGE','CASE','HALF CASE','CARTON','BAG','BUNDLE','BOTTLE','CAN','JAR','TIN','TUB','ROLL','TUBE'];
 const normalizeUnit=value=>({PIECE:'PC',PCS:'PC',DOZEN:'DOZ',PACK:'PKT',PACKET:'PKT',LITRE:'L',LITER:'L'}[String(value||'').toUpperCase()]||String(value||'PC').toUpperCase());
