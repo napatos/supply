@@ -3,65 +3,53 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#082d41">
-  <title>SupplyFlow</title>
+  <meta name="theme-color" content="#9a4f32">
+  <title>SupplyFlow · Warm supplier billing</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260719-1">
-  <link rel="stylesheet" href="bill.css?v=20260719-11">
-  <link rel="stylesheet" href="mobile.css?v=20260719-1">
-  <link rel="stylesheet" href="session.css?v=20260719-2">
-  <link rel="stylesheet" href="theme.css?v=20260719-4">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260719-fresh1">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
   <section id="loginView" class="login-view">
+    <div class="login-art" aria-hidden="true"><span>✦</span><span>●</span><span>✦</span></div>
     <form id="loginForm" class="login-card">
-      <div class="brand-mark">S</div>
-      <p class="eyebrow">WHITE SAFFRON</p>
-      <h1>SupplyFlow</h1>
-      <p class="muted">Bills, rates and inventory in one calm workspace.</p>
-      <label>Username<input id="loginUsername" type="text" required autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="naappe"></label>
-      <label>Password<span class="password-field"><input id="loginPassword" type="password" required autocomplete="current-password"><button id="togglePassword" type="button" aria-label="Show password" aria-pressed="false">Show</button></span></label>
-      <button class="btn primary full" type="submit">Sign in</button>
-      <p id="loginError" class="form-error"></p>
+      <div class="logo">S</div>
+      <p class="kicker">WHITE SAFFRON</p>
+      <h1>Welcome back</h1>
+      <p class="muted">Simple supplier bills, clear rates.</p>
+      <label>Username<input id="loginUsername" autocomplete="username" value="naappe" required></label>
+      <label>Password<span class="password-wrap"><input id="loginPassword" type="password" autocomplete="current-password" required><button id="togglePassword" type="button">Show</button></span></label>
+      <button class="button primary wide" type="submit">Sign in</button>
+      <p id="loginError" class="error"></p>
     </form>
   </section>
 
-  <div id="appShell" class="app-shell hidden">
-    <aside class="sidebar" aria-label="Main navigation">
-      <div class="brand"><div class="brand-mark">S</div><div><strong>SupplyFlow</strong><small>Procurement</small></div></div>
-      <nav id="nav"></nav>
-      <button id="logoutBtn" class="nav-link logout">↪ <span>Logout</span></button>
-    </aside>
-    <button id="sidebarBackdrop" class="sidebar-backdrop" aria-label="Close navigation"></button>
-    <main class="main">
-      <header class="topbar">
-        <button id="menuBtn" class="icon-btn" aria-label="Open navigation" aria-expanded="false">☰</button>
-        <div><p id="pageEyebrow" class="eyebrow">OVERVIEW</p><h2 id="pageTitle">Dashboard</h2></div>
-        <div class="top-actions"><span id="syncState" class="sync-pill">● Live</span><button id="quickBill" class="btn primary" type="button">＋ Add Bill</button></div>
-      </header>
-      <div id="page" class="page"></div>
-    </main>
+  <div id="app" class="app hidden">
+    <header class="header">
+      <button id="menuButton" class="menu-button" aria-label="Open menu">☰</button>
+      <a class="wordmark" href="#" data-view="entry"><span>S</span><div><strong>SupplyFlow</strong><small>Supplier billing</small></div></a>
+      <nav id="nav" class="nav" aria-label="Main navigation"></nav>
+      <div class="header-end"><span id="liveStatus" class="live-status">● Live</span><button id="logoutButton" class="button ghost">Logout</button></div>
+    </header>
+    <div id="mobileBackdrop" class="backdrop"></div>
+    <main id="main" class="main"></main>
   </div>
 
-  <dialog id="vendorDialog">
-    <form id="vendorForm" method="dialog" class="dialog-card">
-      <div class="dialog-head"><div><p class="eyebrow">SUPPLIER RECORD</p><h3>Add Supplier</h3></div><button type="button" class="icon-btn close-dialog">×</button></div>
-      <div class="form-grid two">
-        <label>Vendor name<input name="vendor_name" required></label>
-        <label>TIN<input name="tin_number"></label>
-        <label>Mobile<input name="contact_number" inputmode="tel"></label>
-        <label>Address<input name="address"></label>
-        <label class="span-2">Bank details<input name="bank_details"></label>
-      </div>
-      <div class="dialog-actions"><button type="button" class="btn close-dialog">Cancel</button><button class="btn primary" value="save">Save Supplier</button></div>
+  <dialog id="supplierDialog">
+    <form id="supplierForm" class="dialog-form">
+      <div class="dialog-head"><div><p class="kicker">SUPPLIER</p><h2>Add supplier</h2></div><button type="button" class="round-button" data-close>×</button></div>
+      <label>Company name<input name="vendor_name" required></label>
+      <div class="two-cols"><label>Phone<input name="contact_number"></label><label>TIN / Tax ID<input name="tin_number"></label></div>
+      <label>Address<textarea name="address" rows="2"></textarea></label>
+      <label>Bank details<input name="bank_details"></label>
+      <div class="dialog-actions"><button type="button" class="button ghost" data-close>Cancel</button><button class="button primary">Save supplier</button></div>
     </form>
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8"></script>
-  <script src="app.js?v=20260719-17"></script>
-  <script src="interactions.js?v=20260719-1"></script>
+  <script src="app.js?v=20260719-fresh1"></script>
 </body>
 </html>
